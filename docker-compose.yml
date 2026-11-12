@@ -27,6 +27,11 @@ services:
     environment:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
     networks:
       - backend
 
@@ -52,11 +57,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
+      - RabbitMq__Host=rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5000:5000"
     networks:
@@ -71,11 +77,12 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
+      - RabbitMq__Host=rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
       rabbitmq:
-        condition: service_started
+        condition: service_healthy
     ports:
       - "5001:5001"
     networks:
@@ -87,14 +94,15 @@ services:
       dockerfile: Dockerfile
       target: notifications-worker
     container_name: notifications-worker
-    restart: "no"
+    restart: unless-stopped
     environment:
       - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
+      - RabbitMq__Host=rabbitmq
     depends_on:
       postgres:
         condition: service_healthy
-      users-service:
-        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     networks:
       - backend
 

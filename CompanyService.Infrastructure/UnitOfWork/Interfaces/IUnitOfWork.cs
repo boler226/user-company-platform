@@ -5,9 +5,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace CompanyService.Infrastructure.UnitOfWork.Interfaces {
-    public interface IUnitOfWork {
-        ICompanyRepository Companies {  get; }
-        Task<int> SaveChangesAsync();
-    }
+namespace CompanyService.Infrastructure.UnitOfWork.Interfaces;
+
+public interface IUnitOfWork {
+    ICompanyRepository Companies {  get; }
+    Task<int> SaveChangesAsync();
 }

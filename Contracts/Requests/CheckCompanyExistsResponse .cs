@@ -1,7 +1,6 @@
-﻿namespace Contracts.Requests
+﻿namespace Contracts.Requests;
+
+public class CheckCompanyExistsResponse
 {
-    public class CheckCompanyExistsResponse
-    {
-        public bool Exists { get; set; }
-    }
+    public bool Exists { get; set; }
 }

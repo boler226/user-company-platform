@@ -5,27 +5,27 @@ using FluentValidation;
 using MassTransit;
 using MediatR;
 
-namespace CompanyService.Application.Commands.CreateCompany {
-    public class CreateCompanyCommandHandler(
-        IUnitOfWork unitOfWork,
-        IPublishEndpoint publishEndpoint,
-        IValidator<CreateCompanyCommand> validator
-        ) : IRequestHandler<CreateCompanyCommand, Guid> {
-        public async Task<Guid> Handle(CreateCompanyCommand request, CancellationToken cancellationToken) {
-            await validator.ValidateAndThrowAsync(request, cancellationToken);
+namespace CompanyService.Application.Commands.CreateCompany;
 
-            var company = new Company {
-                Id = Guid.NewGuid(),
-                Name = request.Name,
-                Email = request.Email,
-                Address = request.Address,
-                CreatedAt = DateTime.UtcNow
-            };
+public class CreateCompanyCommandHandler(
+    IUnitOfWork unitOfWork,
+    IPublishEndpoint publishEndpoint,
+    IValidator<CreateCompanyCommand> validator
+) : IRequestHandler<CreateCompanyCommand, Guid> {
+    public async Task<Guid> Handle(CreateCompanyCommand request, CancellationToken cancellationToken) {
+        await validator.ValidateAndThrowAsync(request, cancellationToken);
 
-            await unitOfWork.Companies.AddAsync(company, cancellationToken);
-            await unitOfWork.SaveChangesAsync();
+        var company = new Company {
+            Id = Guid.NewGuid(),
+            Name = request.Name,
+            Email = request.Email,
+            Address = request.Address,
+            CreatedAt = DateTime.UtcNow
+        };
 
-            return company.Id;
-        }
+        await unitOfWork.Companies.AddAsync(company, cancellationToken);
+        await unitOfWork.SaveChangesAsync();
+
+        return company.Id;
     }
 }

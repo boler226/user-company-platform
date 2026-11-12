@@ -1,7 +1,6 @@
-﻿namespace Contracts.Requests
+﻿namespace Contracts.Requests;
+
+public class CheckCompanyExistsRequest
 {
-    public class CheckCompanyExistsRequest
-    {
-        public Guid CompanyId { get; set; }
-    }
+    public Guid CompanyId { get; set; }
 }

@@ -2,19 +2,19 @@
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using MediatR;
 
-namespace CompanyService.Application.Commands.DeleteCompany {
-    public class DeleteCompanyCommandHandler(
-        ICompanyRepository repository,
-        IUnitOfWork unitOfWork
-        ) : IRequestHandler<DeleteCompanyCommand> {
-        public async Task Handle(DeleteCompanyCommand request, CancellationToken cancellationToken) {
-            var company = await repository.GetByIdAsync(request.Id, cancellationToken);
+namespace CompanyService.Application.Commands.DeleteCompany;
 
-            if (company is null)
-                throw new Exception("Company not found!");
+public class DeleteCompanyCommandHandler(
+    ICompanyRepository repository,
+    IUnitOfWork unitOfWork
+) : IRequestHandler<DeleteCompanyCommand> {
+    public async Task Handle(DeleteCompanyCommand request, CancellationToken cancellationToken) {
+        var company = await repository.GetByIdAsync(request.Id, cancellationToken);
 
-            await repository.DeleteAsync(company, cancellationToken);
-            await unitOfWork.SaveChangesAsync();
-        }
+        if (company is null)
+            throw new Exception("Company not found!");
+
+        await repository.DeleteAsync(company, cancellationToken);
+        await unitOfWork.SaveChangesAsync();
     }
 }

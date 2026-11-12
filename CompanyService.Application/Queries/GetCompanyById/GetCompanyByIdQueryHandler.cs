@@ -3,18 +3,18 @@ using CompanyService.Application.DTOs;
 using CompanyService.Domain.Interfaces;
 using MediatR;
 
-namespace CompanyService.Application.Queries.GetCompanyById {
-    public class GetCompanyByIdQueryHandler(
-        ICompanyRepository companyRepository,
-        IMapper mapper
-        ) : IRequestHandler<GetCompanyByIdQuery, CompanyDto> {
-        public async Task<CompanyDto> Handle(GetCompanyByIdQuery request, CancellationToken cancellationToken) {
-            var company = await companyRepository.GetByIdAsync(request.Id, cancellationToken);
+namespace CompanyService.Application.Queries.GetCompanyById;
 
-            if (company is null)
-                throw new Exception("Company not found!");
+public class GetCompanyByIdQueryHandler(
+    ICompanyRepository companyRepository,
+    IMapper mapper
+) : IRequestHandler<GetCompanyByIdQuery, CompanyDto> {
+    public async Task<CompanyDto> Handle(GetCompanyByIdQuery request, CancellationToken cancellationToken) {
+        var company = await companyRepository.GetByIdAsync(request.Id, cancellationToken);
 
-            return mapper.Map<CompanyDto>(company);
-        }
+        if (company is null)
+            throw new Exception("Company not found!");
+
+        return mapper.Map<CompanyDto>(company);
     }
 }

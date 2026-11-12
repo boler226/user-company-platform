@@ -2,26 +2,26 @@
 using MediatR;
 using UsersService.Infrastructure.UnitOfWork.Interfaces;
 
-namespace UserService.Application.Commands.UpdateUser {
-    public class UpdateUserCommandHandler(
-        IUnitOfWork unitOfWork,
-        IValidator<UpdateUserCommand> validator
-        ) : IRequestHandler<UpdateUserCommand> {
-        public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken) {
-            await validator.ValidateAndThrowAsync(request, cancellationToken);
-            var user = await unitOfWork.Users.GetByIdAsync(request.Id, cancellationToken);
+namespace UserService.Application.Commands.UpdateUser;
 
-            if (user is null)
-                throw new Exception("User not found!");
+public class UpdateUserCommandHandler(
+    IUnitOfWork unitOfWork,
+    IValidator<UpdateUserCommand> validator
+) : IRequestHandler<UpdateUserCommand> {
+    public async Task Handle(UpdateUserCommand request, CancellationToken cancellationToken) {
+        await validator.ValidateAndThrowAsync(request, cancellationToken);
+        var user = await unitOfWork.Users.GetByIdAsync(request.Id, cancellationToken);
 
-            user.FirstName = request.FirstName;
-            user.LastName = request.LastName;
-            user.Email = request.Email;
-            user.CompanyId = request.CompanyId;
+        if (user is null)
+            throw new Exception("User not found!");
+
+        user.FirstName = request.FirstName;
+        user.LastName = request.LastName;
+        user.Email = request.Email;
+        user.CompanyId = request.CompanyId;
 
 
-            await unitOfWork.Users.UpdateAsync(user, cancellationToken);
-            await unitOfWork.SaveChangesAsync(cancellationToken);
-        }
+        await unitOfWork.Users.UpdateAsync(user, cancellationToken);
+        await unitOfWork.SaveChangesAsync(cancellationToken);
     }
 }

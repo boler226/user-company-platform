@@ -1,7 +1,6 @@
-﻿namespace UserService.Domain.Interfaces
+﻿namespace UserService.Domain.Interfaces;
+
+public interface IEntityExistenceChecker
 {
-    public interface IEntityExistenceChecker
-    {
-        Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken cancellationToken);
-    }
+    Task<bool> CompanyExistsAsync(Guid companyId, CancellationToken cancellationToken);
 }

@@ -1,6 +1,6 @@
-﻿namespace UsersService.Application.DTOs {
-    public class LoginDto {
-        public string Email { get; set; } = null!;
-        public string Password { get; set; } = null!;
-    }
+﻿namespace UsersService.Application.DTOs;
+
+public class LoginDto {
+    public string Email { get; set; } = null!;
+    public string Password { get; set; } = null!;
 }

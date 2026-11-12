@@ -1,6 +1,12 @@
 using NotificationService.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Infrastructure.DTOs;
+using MassTransit;
+using NotificationService.Domain.Interfaces;
+using NotificationService.Infrastructure.Consumers;
+using NotificationService.Infrastructure.Reposetories;
+using NotificationService.Infrastructure.Services;
+using NotificationService.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
 
@@ -10,24 +16,24 @@ builder.Services.AddDbContext<NotificationDbContext>(options =>
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
+builder.Services.AddMassTransit(x => {
+    x.AddConsumer<UserRegisteredConsumer>();
+    x.AddConsumer<CompanyCreateConsumer>();
+
+    x.UsingRabbitMq((context, cfg) => {
+        cfg.Host("rabbitmq", "/", h => {
+            h.Username("guest");
+            h.Password("guest");
+        });
+
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+builder.Services.AddScoped<IUserNotificationRepository, UserNotificationRepository>();
+builder.Services.AddScoped<INotificationSender, NotificationSender>();
+
+builder.Services.AddHostedService<Worker>();
+
 var host = builder.Build();
-
-using (var scope = host.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
-
-    for (var attempt = 1; ; attempt++)
-    {
-        try
-        {
-            db.Database.Migrate();
-            break;
-        }
-        catch when (attempt < 10)
-        {
-            Thread.Sleep(3000);
-        }
-    }
-}
-
 host.Run();

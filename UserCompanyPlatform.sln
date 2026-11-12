@@ -3,29 +3,32 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService.API", "CompanyService.API\CompanyService.API.csproj", "{FD5A5B6C-944C-4BCB-ACA8-A4243BB11A89}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanyService.API", "CompanyService.API\CompanyService.API.csproj", "{FD5A5B6C-944C-4BCB-ACA8-A4243BB11A89}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService.Application", "CompanyService.Application\CompanyService.Application.csproj", "{FFA76FAE-0ED1-4C27-A067-5C92D9AB7ABE}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanyService.Application", "CompanyService.Application\CompanyService.Application.csproj", "{FFA76FAE-0ED1-4C27-A067-5C92D9AB7ABE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService.Domain", "CompanyService.Domain\CompanyService.Domain.csproj", "{6FB08BB6-4D78-45B3-82B4-57CA619F9DB2}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanyService.Domain", "CompanyService.Domain\CompanyService.Domain.csproj", "{6FB08BB6-4D78-45B3-82B4-57CA619F9DB2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CompanyService.Infrastructure", "CompanyService.Infrastructure\CompanyService.Infrastructure.csproj", "{8BC87A51-C152-41E1-9B45-4D6066AF027D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CompanyService.Infrastructure", "CompanyService.Infrastructure\CompanyService.Infrastructure.csproj", "{8BC87A51-C152-41E1-9B45-4D6066AF027D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Domain", "NotificationService.Domain\NotificationService.Domain.csproj", "{934AEC20-E7BB-4059-8710-BA9EFD2180BC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NotificationService.Domain", "NotificationService.Domain\NotificationService.Domain.csproj", "{934AEC20-E7BB-4059-8710-BA9EFD2180BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Infrastructure", "NotificationService.Infrastructure\NotificationService.Infrastructure.csproj", "{38B1AE7A-30AE-42EC-A0DC-28BA55CA2E59}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NotificationService.Infrastructure", "NotificationService.Infrastructure\NotificationService.Infrastructure.csproj", "{38B1AE7A-30AE-42EC-A0DC-28BA55CA2E59}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.API", "UserService.API\UserService.API.csproj", "{4BFC3D4A-4010-4820-85A6-2DC09F69D78F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService.API", "UserService.API\UserService.API.csproj", "{4BFC3D4A-4010-4820-85A6-2DC09F69D78F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.Application", "UserService.Application\UserService.Application.csproj", "{FB79FD75-A928-4C82-95A3-AE131382D283}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService.Application", "UserService.Application\UserService.Application.csproj", "{FB79FD75-A928-4C82-95A3-AE131382D283}"
+	ProjectSection(ProjectDependencies) = postProject
+		{8D819584-4EC2-52ED-CD78-AA7BA4C26214} = {8D819584-4EC2-52ED-CD78-AA7BA4C26214}
+	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.Domain", "UserService.Domain\UserService.Domain.csproj", "{640626DB-A5E3-4E5A-A62B-B02281381373}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService.Domain", "UserService.Domain\UserService.Domain.csproj", "{640626DB-A5E3-4E5A-A62B-B02281381373}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UserService.Infrastructure", "UserService.Infrastructure\UserService.Infrastructure.csproj", "{41CB94BB-9E12-43E3-9B44-F7AED135396F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "UserService.Infrastructure", "UserService.Infrastructure\UserService.Infrastructure.csproj", "{41CB94BB-9E12-43E3-9B44-F7AED135396F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NotificationService.Worker", "NotificationService.Worker\NotificationService.Worker.csproj", "{C843E7B9-8746-45CE-1D53-C144DA9B2B20}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NotificationService.Worker", "NotificationService.Worker\NotificationService.Worker.csproj", "{C843E7B9-8746-45CE-1D53-C144DA9B2B20}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Contracts", "Contracts\Contracts.csproj", "{8D819584-4EC2-52ED-CD78-AA7BA4C26214}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Contracts", "Contracts\Contracts.csproj", "{8D819584-4EC2-52ED-CD78-AA7BA4C26214}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

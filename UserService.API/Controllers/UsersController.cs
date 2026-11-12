@@ -8,44 +8,44 @@ using UsersService.Application.Queries.GetAllUsers;
 using UsersService.Application.Queries.GetUserById;
 using UsersService.Application.Queries.LoginUser;
 
-namespace UsersService.API.Controllers {
-    [ApiController]
-    [Route("api/[controller]/[action]")]
-    public class UsersController(IMediator mediator) : ControllerBase {
-        [HttpGet]
-        public async Task<IActionResult> GetAll() {
-            var result = await mediator.Send(new GetAllUsersQuery());
-            return Ok(result);
-        }
+namespace UsersService.API.Controllers;
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(Guid id) {
-            var result = await mediator.Send(new GetUserByIdQuery(id));
-            return Ok(result);
-        }
+[ApiController]
+[Route("api/[controller]/[action]")]
+public class UsersController(IMediator mediator) : ControllerBase {
+    [HttpGet]
+    public async Task<IActionResult> GetAll() {
+        var result = await mediator.Send(new GetAllUsersQuery());
+        return Ok(result);
+    }
 
-        [HttpPost("register")]
-        public async Task<IActionResult> Register(RegisterUserCommand command) {
-            var userId = await mediator.Send(command);
-            return Ok(userId);
-        }
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(Guid id) {
+        var result = await mediator.Send(new GetUserByIdQuery(id));
+        return Ok(result);
+    }
 
-        [HttpPost("login")]
-        public async Task<IActionResult> Login([FromBody] LoginDto loginDto) {
-            var token = await mediator.Send(new LoginUserQuery(loginDto.Email, loginDto.Password));
-            return Ok(new { token });
-        }
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterUserCommand command) {
+        var userId = await mediator.Send(command);
+        return Ok(userId);
+    }
 
-        [HttpPut]
-        public async Task<IActionResult> Update(UpdateUserCommand command) {
-            await mediator.Send(command);
-            return Ok();
-        }
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginDto loginDto) {
+        var token = await mediator.Send(new LoginUserQuery(loginDto.Email, loginDto.Password));
+        return Ok(new { token });
+    }
 
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(Guid id) {
-            await mediator.Send(new DeleteUserCommand(id));
-            return Ok(id);
-        }
+    [HttpPut]
+    public async Task<IActionResult> Update(UpdateUserCommand command) {
+        await mediator.Send(command);
+        return Ok();
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> Delete(Guid id) {
+        await mediator.Send(new DeleteUserCommand(id));
+        return Ok(id);
     }
 }

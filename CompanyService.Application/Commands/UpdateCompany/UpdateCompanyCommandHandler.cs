@@ -3,25 +3,25 @@ using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using FluentValidation;
 using MediatR;
 
-namespace CompanyService.Application.Commands.UpdateCompany {
-    public class UpdateCompanyCommandHandler(
-        ICompanyRepository repository,
-        IUnitOfWork unitOfWork,
-        IValidator<UpdateCompanyCommand> validator
-        ) : IRequestHandler<UpdateCompanyCommand> {
-        public async Task Handle(UpdateCompanyCommand requst, CancellationToken cancellationToken) {
-            await validator.ValidateAndThrowAsync(requst, cancellationToken);
-            var company = await repository.GetByIdAsync(requst.Id, cancellationToken);
+namespace CompanyService.Application.Commands.UpdateCompany;
 
-            if (company is null)
-                throw new Exception("Company not found!");
+public class UpdateCompanyCommandHandler(
+    ICompanyRepository repository,
+    IUnitOfWork unitOfWork,
+    IValidator<UpdateCompanyCommand> validator
+) : IRequestHandler<UpdateCompanyCommand> {
+    public async Task Handle(UpdateCompanyCommand requst, CancellationToken cancellationToken) {
+        await validator.ValidateAndThrowAsync(requst, cancellationToken);
+        var company = await repository.GetByIdAsync(requst.Id, cancellationToken);
 
-            company.Name = requst.Name;
-            company.Email = requst.Email;
-            company.Address = requst.Address;
+        if (company is null)
+            throw new Exception("Company not found!");
 
-            await repository.UpdateAsync(company, cancellationToken);
-            await unitOfWork.SaveChangesAsync();
-        }
+        company.Name = requst.Name;
+        company.Email = requst.Email;
+        company.Address = requst.Address;
+
+        await repository.UpdateAsync(company, cancellationToken);
+        await unitOfWork.SaveChangesAsync();
     }
 }
