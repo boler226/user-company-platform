@@ -3,3 +3,9 @@
 **/.vs/
 *.user
 *.suo
+**/.env
+**/.venv/
+**/.local-mongo/
+**/__pycache__/
+.git/
+*.log

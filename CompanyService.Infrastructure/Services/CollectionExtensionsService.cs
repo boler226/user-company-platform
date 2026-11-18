@@ -1,4 +1,4 @@
-﻿using CompanyService.Domain.Interfaces;
+using CompanyService.Domain.Interfaces;
 using CompanyService.Infrastructure.DbContext;
 using CompanyService.Infrastructure.Repositories;
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
@@ -13,7 +13,7 @@ public static class CollectionExtensionsService
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        string redisConnectionString)
+        string redisConnectionString, string rabbitHost = "localhost")
     {
 
         // (прибрано Console.WriteLine з рядком підключення: у ньому пароль)
@@ -23,7 +23,8 @@ public static class CollectionExtensionsService
 
         // Redis — спільний розподілений кеш. НЕ використовуємо IMemoryCache / AddDistributedMemoryCache,
         // бо це локальний стан конкретного процесу.
-        services.AddStackExchangeRedisCache(options => {
+        services.AddStackExchangeRedisCache(options =>
+        {
             options.Configuration = redisConnectionString;
             options.InstanceName = "CompanyService:";
         });
@@ -33,9 +34,12 @@ public static class CollectionExtensionsService
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         // MassTransit
-        services.AddMassTransit(x => {
-            x.UsingRabbitMq((context, cfg) => {
-                cfg.Host("rabbitmq", "/", h => {
+        services.AddMassTransit(x =>
+        {
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                cfg.Host(rabbitHost, "/", h =>
+                {
                     h.Username("guest");
                     h.Password("guest");
                 });

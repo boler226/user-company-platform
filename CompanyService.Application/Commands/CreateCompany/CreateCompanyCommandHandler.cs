@@ -1,5 +1,4 @@
-﻿using CompanyService.Domain.Entities;
-using CompanyService.Domain.Interfaces;
+using CompanyService.Domain.Entities;
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using FluentValidation;
 using MassTransit;
@@ -11,11 +10,14 @@ public class CreateCompanyCommandHandler(
     IUnitOfWork unitOfWork,
     IPublishEndpoint publishEndpoint,
     IValidator<CreateCompanyCommand> validator
-) : IRequestHandler<CreateCompanyCommand, Guid> {
-    public async Task<Guid> Handle(CreateCompanyCommand request, CancellationToken cancellationToken) {
+) : IRequestHandler<CreateCompanyCommand, Guid>
+{
+    public async Task<Guid> Handle(CreateCompanyCommand request, CancellationToken cancellationToken)
+    {
         await validator.ValidateAndThrowAsync(request, cancellationToken);
 
-        var company = new Company {
+        var company = new Company
+        {
             Id = Guid.NewGuid(),
             Name = request.Name,
             Email = request.Email,

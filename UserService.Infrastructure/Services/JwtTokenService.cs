@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
@@ -10,11 +10,12 @@ using System.Security.Claims;
 namespace UsersService.Infrastructure.Services;
 
 public class JwtTokenService(
-    IConfiguration config,
-    UserManager<User> userManager) : IJwtTokenService {
+    IConfiguration config) : IJwtTokenService
+{
     private const int tokenLifeTimeInDays = 7;
 
-    public async Task<string> GenerateTokenAsync(User user) {
+    public async Task<string> GenerateTokenAsync(User user)
+    {
         var key = Encoding.UTF8.GetBytes(config["Authentication:Jwt:SecretKey"]!);
         var signinKey = new SymmetricSecurityKey(key);
         var signinCredential = new SigningCredentials(signinKey, SecurityAlgorithms.HmacSha256);
@@ -27,9 +28,10 @@ public class JwtTokenService(
         return new JwtSecurityTokenHandler().WriteToken(jwt);
     }
 
-    private async Task<List<Claim>> GetClaimsAsync(User user) {
+    private Task<List<Claim>> GetClaimsAsync(User user)
+    {
         var userEmail = user.Email ?? throw new NullReferenceException("User.Email");
-        var userRoles = await userManager.GetRolesAsync(user);
+        var userRoles = new[] { user.Role.ToString() };
 
         var roleClaims = userRoles
             .Select(role => new Claim(ClaimTypes.Role, role))
@@ -43,6 +45,6 @@ public class JwtTokenService(
         };
         claims.AddRange(roleClaims);
 
-        return claims;
+        return Task.FromResult(claims);
     }
 }

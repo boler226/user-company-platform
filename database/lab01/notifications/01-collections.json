@@ -1,0 +1,230 @@
+{
+  "templates": {
+    "bsonType": "object",
+    "required": [
+      "_id",
+      "code",
+      "channel",
+      "body",
+      "createdAt",
+      "createdBy",
+      "updatedAt",
+      "updatedBy",
+      "isDeleted",
+      "version"
+    ],
+    "properties": {
+      "_id": {
+        "bsonType": "string"
+      },
+      "code": {
+        "bsonType": "string",
+        "minLength": 1
+      },
+      "channel": {
+        "enum": [
+          "email",
+          "inApp"
+        ]
+      },
+      "body": {
+        "bsonType": "string",
+        "minLength": 1
+      },
+      "createdAt": {
+        "bsonType": "date"
+      },
+      "createdBy": {
+        "bsonType": "string"
+      },
+      "updatedAt": {
+        "bsonType": "date"
+      },
+      "updatedBy": {
+        "bsonType": "string"
+      },
+      "isDeleted": {
+        "bsonType": "bool"
+      },
+      "version": {
+        "bsonType": [
+          "int",
+          "long"
+        ],
+        "minimum": 1
+      }
+    }
+  },
+  "notifications": {
+    "bsonType": "object",
+    "required": [
+      "_id",
+      "templateId",
+      "recipient",
+      "status",
+      "priority",
+      "payload",
+      "recentAttempts",
+      "createdAt",
+      "createdBy",
+      "updatedAt",
+      "updatedBy",
+      "isDeleted",
+      "version"
+    ],
+    "properties": {
+      "_id": {
+        "bsonType": "string"
+      },
+      "templateId": {
+        "bsonType": "string"
+      },
+      "recipient": {
+        "bsonType": "object",
+        "required": [
+          "userId",
+          "email",
+          "displayName"
+        ],
+        "properties": {
+          "userId": {
+            "bsonType": "string",
+            "pattern": "^[0-9a-f-]{36}$"
+          },
+          "email": {
+            "bsonType": "string",
+            "pattern": "^.+@.+$"
+          },
+          "displayName": {
+            "bsonType": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "company": {
+        "bsonType": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "properties": {
+          "id": {
+            "bsonType": "string",
+            "pattern": "^[0-9a-f-]{36}$"
+          },
+          "name": {
+            "bsonType": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "status": {
+        "enum": [
+          "Pending",
+          "Sent",
+          "Failed"
+        ]
+      },
+      "priority": {
+        "bsonType": [
+          "int",
+          "long"
+        ],
+        "minimum": 1,
+        "maximum": 5
+      },
+      "payload": {
+        "bsonType": "object"
+      },
+      "recentAttempts": {
+        "bsonType": "array",
+        "maxItems": 3,
+        "items": {
+          "bsonType": "object",
+          "required": [
+            "attemptId",
+            "status",
+            "occurredAt"
+          ],
+          "properties": {
+            "attemptId": {
+              "bsonType": "string"
+            },
+            "status": {
+              "enum": [
+                "Sent",
+                "Failed"
+              ]
+            },
+            "occurredAt": {
+              "bsonType": "date"
+            }
+          }
+        }
+      },
+      "createdAt": {
+        "bsonType": "date"
+      },
+      "createdBy": {
+        "bsonType": "string"
+      },
+      "updatedAt": {
+        "bsonType": "date"
+      },
+      "updatedBy": {
+        "bsonType": "string"
+      },
+      "isDeleted": {
+        "bsonType": "bool"
+      },
+      "version": {
+        "bsonType": [
+          "int",
+          "long"
+        ],
+        "minimum": 1
+      }
+    }
+  },
+  "deliveryAttempts": {
+    "bsonType": "object",
+    "required": [
+      "_id",
+      "notificationId",
+      "number",
+      "status",
+      "occurredAt",
+      "createdBy"
+    ],
+    "properties": {
+      "_id": {
+        "bsonType": "string"
+      },
+      "notificationId": {
+        "bsonType": "string"
+      },
+      "number": {
+        "bsonType": [
+          "int",
+          "long"
+        ],
+        "minimum": 1
+      },
+      "status": {
+        "enum": [
+          "Sent",
+          "Failed"
+        ]
+      },
+      "occurredAt": {
+        "bsonType": "date"
+      },
+      "createdBy": {
+        "bsonType": "string"
+      },
+      "providerResponse": {
+        "bsonType": "object"
+      }
+    }
+  }
+}
