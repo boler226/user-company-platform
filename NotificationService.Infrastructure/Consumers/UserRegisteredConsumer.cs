@@ -1,4 +1,4 @@
-﻿using Contracts.Events;
+using Contracts.Events;
 using MassTransit;
 using Microsoft.Extensions.Logging;
 using NotificationService.Domain.Entities;
@@ -18,6 +18,8 @@ public class UserRegisteredConsumer(
 
         var entity = new UserNotificationSchedule
         {
+            Id = message.UserId,
+            UserId = message.UserId,
             Email = message.Email,
             RegisteredAt = message.RegisteredAt
         };

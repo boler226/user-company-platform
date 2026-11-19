@@ -1,113 +1,82 @@
+name: user-company-platform
 services:
   postgres:
     image: postgres:16
-    container_name: postgres
     environment:
-      POSTGRES_DB: UserService
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: boler2020
-    ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-Lab01PostgresDemo2026}
+    ports: ["127.0.0.1:55432:5432"]
+    volumes: ["lab-sql:/var/lib/postgresql/data"]
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d UserService"]
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 10
-    networks:
-      - backend
-
+      retries: 20
+  mongo:
+    image: mongo:8.0
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: lab01_admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:-Lab01MongoDemo2026}
+    ports: ["127.0.0.1:57017:27017"]
+    volumes: ["lab-mongo:/data/db"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+    # APIs connect through the Compose network at rabbitmq:5672.
+    # Only the management UI needs a host port.
+    ports: ["127.0.0.1:15672:15672"]
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-    networks:
-      - backend
-
+      interval: 5s
+      timeout: 5s
+      retries: 20
   redis:
     image: redis:7-alpine
-    container_name: redis
-    ports:
-      - "6379:6379"
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-    networks:
-      - backend
-
+    # Redis is used only inside the Compose network at redis:6379.
+  database-setup:
+    build: {context: ., target: database-setup}
+    environment:
+      POSTGRES_ADMIN: Host=postgres;Database=postgres;Username=postgres;Password=${POSTGRES_PASSWORD:-Lab01PostgresDemo2026}
+      MONGO_ADMIN_URI: mongodb://lab01_admin:${MONGO_ROOT_PASSWORD:-Lab01MongoDemo2026}@mongo:27017/?authSource=admin
+      LAB01_USERS_PASSWORD: ${LAB01_USERS_PASSWORD:-Lab01usersDemo2026}
+      LAB01_COMPANIES_PASSWORD: ${LAB01_COMPANIES_PASSWORD:-Lab01companiesDemo2026}
+      LAB01_NOTIFICATIONS_PASSWORD: ${LAB01_NOTIFICATIONS_PASSWORD:-Lab01notificationsDemo2026}
+    depends_on:
+      postgres: {condition: service_healthy}
+      mongo: {condition: service_healthy}
   users-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: users-service
-    container_name: users-service
+    build: {context: ., target: users-service}
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
-      - RabbitMq__Host=rabbitmq
+      ConnectionStrings__PostgreSQLConnection: Host=postgres;Database=lab01_users;Username=lab01_users_app;Password=${LAB01_USERS_PASSWORD:-Lab01usersDemo2026}
+      RabbitMq__Host: rabbitmq
+      CompanyService__Url: http://companies-service:5001
+    ports: ["5000:5000"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    ports:
-      - "5000:5000"
-    networks:
-      - backend
-
+      database-setup: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
   companies-service:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: companies-service
-    container_name: companies-service
+    build: {context: ., target: companies-service}
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
-      - RabbitMq__Host=rabbitmq
+      ConnectionStrings__PostgreSQLConnection: Host=postgres;Database=lab01_companies;Username=lab01_companies_app;Password=${LAB01_COMPANIES_PASSWORD:-Lab01companiesDemo2026}
+      ConnectionStrings__Redis: redis:6379
+      RabbitMq__Host: rabbitmq
+    ports: ["5001:5001"]
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    ports:
-      - "5001:5001"
-    networks:
-      - backend
-
+      database-setup: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
+      redis: {condition: service_started}
   notifications-worker:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: notifications-worker
-    container_name: notifications-worker
-    restart: unless-stopped
+    build: {context: ., target: notifications-worker}
     environment:
-      - ConnectionStrings__PostgreSQLConnection=Host=postgres;Port=5432;Database=UserService;Username=postgres;Password=boler2020
-      - RabbitMq__Host=rabbitmq
+      ConnectionStrings__MongoDB: mongodb://lab01_notifications_app:${LAB01_NOTIFICATIONS_PASSWORD:-Lab01notificationsDemo2026}@mongo:27017/lab01_notifications?authSource=lab01_notifications
+      RabbitMq__Host: rabbitmq
+      EmailSettings__Password: ${SMTP_PASSWORD:-}
     depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-    networks:
-      - backend
-
+      database-setup: {condition: service_completed_successfully}
+      rabbitmq: {condition: service_healthy}
 volumes:
-  pgdata:
-
-networks:
-  backend:
+  lab-sql:
+  lab-mongo:

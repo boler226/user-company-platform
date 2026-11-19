@@ -10,18 +10,22 @@ using NotificationService.Worker;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-builder.Services.AddDbContext<NotificationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("PostgreSQLConnection")));
+builder.Services.AddSingleton<MongoDB.Driver.IMongoDatabase>(_ =>
+    new MongoDB.Driver.MongoClient(builder.Configuration.GetConnectionString("MongoDB"))
+        .GetDatabase("lab01_notifications"));
 
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
-builder.Services.AddMassTransit(x => {
+builder.Services.AddMassTransit(x =>
+{
     x.AddConsumer<UserRegisteredConsumer>();
     x.AddConsumer<CompanyCreateConsumer>();
 
-    x.UsingRabbitMq((context, cfg) => {
-        cfg.Host("rabbitmq", "/", h => {
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMq:Host"] ?? "localhost", "/", h =>
+        {
             h.Username("guest");
             h.Password("guest");
         });

@@ -1,0 +1,164 @@
+{
+  "templates": [
+    {
+      "_id": "membership-email",
+      "code": "membership-approved",
+      "channel": "email",
+      "body": "Р’С–С‚Р°С”РјРѕ, {{displayName}}! Р’Р°С€Сѓ Р·Р°СЏРІРєСѓ РґРѕ {{companyName}} СЃС…РІР°Р»РµРЅРѕ.",
+      "subject": "Р—Р°СЏРІРєСѓ СЃС…РІР°Р»РµРЅРѕ",
+      "locale": "uk-UA",
+      "createdAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "createdBy": "seed",
+      "updatedAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "updatedBy": "seed",
+      "isDeleted": false,
+      "version": 1
+    },
+    {
+      "_id": "welcome-inapp",
+      "code": "welcome",
+      "channel": "inApp",
+      "body": "Р’С–С‚Р°С”РјРѕ Сѓ РїР»Р°С‚С„РѕСЂРјС–!",
+      "actions": [
+        {
+          "label": "РџСЂРѕС„С–Р»СЊ",
+          "route": "/profile"
+        }
+      ],
+      "createdAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "createdBy": "seed",
+      "updatedAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "updatedBy": "seed",
+      "isDeleted": false,
+      "version": 1
+    },
+    {
+      "_id": "registration-email",
+      "code": "registration",
+      "channel": "email",
+      "body": "Вітаємо! Ви з нами вже 2 дні!",
+      "subject": "Вітаємо",
+      "locale": "uk-UA",
+      "createdAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "createdBy": "seed",
+      "updatedAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "updatedBy": "seed",
+      "isDeleted": false,
+      "version": 1
+    }
+  ],
+  "notifications": [
+    {
+      "_id": "welcome-olena",
+      "templateId": "welcome-inapp",
+      "recipient": {
+        "userId": "10000000-0000-0000-0000-000000000001",
+        "email": "olena@example.test",
+        "displayName": "РћР»РµРЅР° РљРѕРІР°Р»СЊ"
+      },
+      "company": {
+        "id": "20000000-0000-0000-0000-000000000001",
+        "name": "Contoso"
+      },
+      "status": "Sent",
+      "priority": 1,
+      "payload": {
+        "kind": "welcome",
+        "actions": [
+          {
+            "label": "Р—Р°РїРѕРІРЅРёС‚Рё РїСЂРѕС„С–Р»СЊ",
+            "route": "/profile"
+          }
+        ]
+      },
+      "recentAttempts": [
+        {
+          "attemptId": "attempt-welcome-1",
+          "status": "Sent",
+          "occurredAt": {
+            "$date": "2026-01-01T10:01:00Z"
+          }
+        }
+      ],
+      "readAt": {
+        "$date": "2026-01-01T10:02:00Z"
+      },
+      "createdAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "createdBy": "seed",
+      "updatedAt": {
+        "$date": "2026-01-01T10:02:00Z"
+      },
+      "updatedBy": "seed",
+      "isDeleted": false,
+      "version": 1
+    },
+    {
+      "_id": "approval-andrii",
+      "templateId": "membership-email",
+      "recipient": {
+        "userId": "10000000-0000-0000-0000-000000000002",
+        "email": "andrii@example.test",
+        "displayName": "РђРЅРґСЂС–Р№ РњРµР»СЊРЅРёРє"
+      },
+      "company": {
+        "id": "20000000-0000-0000-0000-000000000002",
+        "name": "Fabrikam"
+      },
+      "status": "Pending",
+      "priority": 3,
+      "payload": {
+        "kind": "membership-approved",
+        "requestedRole": "QA",
+        "channels": [
+          "email",
+          "inApp"
+        ]
+      },
+      "scheduledAt": {
+        "$date": "2026-01-02T10:00:00Z"
+      },
+      "recentAttempts": [],
+      "createdAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "createdBy": "seed",
+      "updatedAt": {
+        "$date": "2026-01-01T10:00:00Z"
+      },
+      "updatedBy": "seed",
+      "isDeleted": false,
+      "version": 1
+    }
+  ],
+  "deliveryAttempts": [
+    {
+      "_id": "attempt-welcome-1",
+      "notificationId": "welcome-olena",
+      "number": 1,
+      "status": "Sent",
+      "occurredAt": {
+        "$date": "2026-01-01T10:01:00Z"
+      },
+      "createdBy": "seed",
+      "providerResponse": {
+        "provider": "inApp",
+        "messageId": "demo-message-1",
+        "latencyMs": 12
+      }
+    }
+  ]
+}
