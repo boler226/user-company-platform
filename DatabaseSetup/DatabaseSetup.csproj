@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="../CompanyService.Infrastructure/CompanyService.Infrastructure.csproj" />
     <PackageReference Include="Npgsql" Version="9.0.3" />
     <PackageReference Include="MongoDB.Driver" Version="3.4.3" />
     <Content Include="../database/lab01/**/*.sql" Link="scripts/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />

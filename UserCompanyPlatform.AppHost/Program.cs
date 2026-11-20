@@ -22,8 +22,12 @@ var setup = builder.AddProject<Projects.DatabaseSetup>("database-setup")
     .WaitFor(postgres)
     .WaitFor(mongo);
 
-ReferenceExpression ServiceDatabase(string context) => ReferenceExpression.Create(
-    $"Host={postgresHost};Port={postgresPort};Database=lab01_{context};Username=lab01_{context}_app;Password=Lab01{context}Demo2026");
+ReferenceExpression ServiceDatabase(string context)
+{
+    var database = context == "companies" ? "lab03_companies" : "lab01_users";
+    return ReferenceExpression.Create(
+        $"Host={postgresHost};Port={postgresPort};Database={database};Username=lab01_{context}_app;Password=Lab01{context}Demo2026");
+}
 
 var companies = builder.AddProject<Projects.CompanyService_API>("companies-api", launchProfileName: null)
     .WithHttpEndpoint(port: 5001, targetPort: 5001, name: "http", isProxied: false)

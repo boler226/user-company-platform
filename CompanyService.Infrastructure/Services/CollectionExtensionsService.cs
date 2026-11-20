@@ -31,6 +31,8 @@ public static class CollectionExtensionsService
 
         // Repositories & Services (Scoped: живуть рівно один HTTP-запит)
         services.AddScoped<ICompanyRepository, CompanyRepository>();
+        services.AddScoped<IDepartmentRepository, DepartmentRepository>();
+        services.AddScoped<ITagRepository, TagRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork.UnitOfWork>();
 
         // MassTransit

@@ -1,14 +1,12 @@
 using CompanyService.Domain.Entities;
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using FluentValidation;
-using MassTransit;
 using MediatR;
 
 namespace CompanyService.Application.Commands.CreateCompany;
 
 public class CreateCompanyCommandHandler(
     IUnitOfWork unitOfWork,
-    IPublishEndpoint publishEndpoint,
     IValidator<CreateCompanyCommand> validator
 ) : IRequestHandler<CreateCompanyCommand, Guid>
 {
@@ -16,14 +14,7 @@ public class CreateCompanyCommandHandler(
     {
         await validator.ValidateAndThrowAsync(request, cancellationToken);
 
-        var company = new Company
-        {
-            Id = Guid.NewGuid(),
-            Name = request.Name,
-            Email = request.Email,
-            Address = request.Address,
-            CreatedAt = DateTime.UtcNow
-        };
+        var company = new Company(request.Name, request.Email, request.Address);
 
         await unitOfWork.Companies.AddAsync(company, cancellationToken);
         await unitOfWork.SaveChangesAsync();

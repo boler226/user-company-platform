@@ -1,39 +1,36 @@
 using CompanyService.Domain.Entities;
 using CompanyService.Domain.Interfaces;
+using CompanyService.Domain.Specifications;
 using CompanyService.Infrastructure.DbContext;
 using Microsoft.EntityFrameworkCore;
 
 namespace CompanyService.Infrastructure.Repositories;
 
-public class CompanyRepository(
-    CompanyDbContext context
-) : ICompanyRepository
+public sealed class CompanyRepository(CompanyDbContext context) : GenericRepository<Company>(context), ICompanyRepository
 {
-    public async Task<List<Company>> GetAllAsync(CancellationToken cancellationToken) =>
-        await context.Companies.ToListAsync(cancellationToken);
+    public override Task<Company?> GetByIdAsync(Guid id, CancellationToken ct) =>
+        Set.Include(x => x.Details).FirstOrDefaultAsync(x => x.Id == id, ct);
 
-    public async Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken) =>
-        await context.Companies.FirstOrDefaultAsync(c => c.Id == id, cancellationToken);
+    public override Task<List<Company>> GetAllAsync(CancellationToken ct) =>
+        Set.AsNoTracking().Include(x => x.Details).ToListAsync(ct);
 
-    public async Task<Company?> GetByEmailAsync(string email, CancellationToken cancellationToken) =>
-        await context.Companies.FirstOrDefaultAsync(c => c.Email == email, cancellationToken);
+    public Task<Company?> GetByEmailAsync(string email, CancellationToken ct) =>
+        Set.IgnoreQueryFilters()
+            .WithSpecification(new CompanyEmailSpecification(email))
+            .FirstOrDefaultAsync(ct);
 
-    public async Task AddAsync(Company company, CancellationToken cancellationToken)
+    public Task<Company?> GetDetailsAsync(Guid id, CancellationToken ct) =>
+        Set.Include(x => x.Details)
+            .Include(x => x.Departments)
+            .Include(x => x.CompanyTags).ThenInclude(x => x.Tag)
+            .AsSingleQuery()
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+
+    public async Task<(List<Company> Items, int TotalCount)> SearchAsync(Specification<Company> specification, CancellationToken ct)
     {
-        await context.Companies.AddAsync(company, cancellationToken);
-        await context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task UpdateAsync(Company company, CancellationToken cancellationToken)
-    {
-        context.Companies.Update(company);
-        await context.SaveChangesAsync(cancellationToken);
-    }
-
-    public async Task DeleteAsync(Company company, CancellationToken cancellationToken)
-    {
-        company.IsDeleted = true;
-        context.Companies.Update(company);
-        await context.SaveChangesAsync(cancellationToken);
+        var query = Set.AsNoTracking();
+        var total = await query.WithSpecification(specification, countOnly: true).CountAsync(ct);
+        var items = await query.WithSpecification(specification).ToListAsync(ct);
+        return (items, total);
     }
 }

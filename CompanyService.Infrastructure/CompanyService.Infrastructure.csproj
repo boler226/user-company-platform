@@ -28,4 +28,7 @@
     <ProjectReference Include="..\NotificationService.Infrastructure\NotificationService.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Remove="Migrations/*.cs" />
+  </ItemGroup>
 </Project>

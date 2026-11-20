@@ -1,15 +1,25 @@
 using CompanyService.Application.Behaviors;
 using CompanyService.Application.Commands.CreateCompany;
+using CompanyService.Application.Catalog;
+using CompanyService.API.Middleware;
 using CompanyService.Application.Mappings;
 using CompanyService.Application.Validators;
-using CompanyService.Infrastructure.DbContext;
 using CompanyService.Infrastructure.Services;
 using FluentValidation;
-using Microsoft.EntityFrameworkCore;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Host.UseSerilog((context, logger) => logger
+    .ReadFrom.Configuration(context.Configuration)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext} {Message:lj} {Properties:j}{NewLine}{Exception}"));
+
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<CompanyExceptionHandler>();
+builder.Services.AddScoped<ICompanyService, CompanyCatalogService>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -44,6 +54,13 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(CreateCompanyValidator).Assembly);
 
 var app = builder.Build();
+
+app.UseSerilogRequestLogging(options =>
+{
+    options.EnrichDiagnosticContext = (context, http) =>
+        context.Set("TraceId", http.TraceIdentifier);
+});
+app.UseExceptionHandler();
 
 var instanceId = Environment.MachineName;
 app.Use(async (ctx, next) =>

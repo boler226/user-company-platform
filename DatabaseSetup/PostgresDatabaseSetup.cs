@@ -1,5 +1,8 @@
 using Npgsql;
 
+using CompanyService.Infrastructure.DbContext;
+using Microsoft.EntityFrameworkCore;
+
 namespace DatabaseSetup;
 
 internal sealed class PostgresDatabaseSetup(string adminConnectionString)
@@ -11,8 +14,8 @@ internal sealed class PostgresDatabaseSetup(string adminConnectionString)
 
         foreach (var context in new[] { "users", "companies" })
         {
-            var databaseName = "lab01_" + context;
-            var roleName = databaseName + "_app";
+            var databaseName = context == "companies" ? "lab03_companies" : "lab01_users";
+            var roleName = "lab01_" + context + "_app";
             var password = Environment.GetEnvironmentVariable($"LAB01_{context.ToUpperInvariant()}_PASSWORD")
                 ?? $"Lab01{context}Demo2026";
 
@@ -27,7 +30,21 @@ internal sealed class PostgresDatabaseSetup(string adminConnectionString)
             await using var connection = new NpgsqlConnection(settings.ConnectionString);
             await connection.OpenAsync();
 
-            await ApplyScriptsAsync(connection, context);
+            if (context == "companies")
+            {
+                var options = new DbContextOptionsBuilder<CompanyDbContext>()
+                    .UseNpgsql(settings.ConnectionString)
+                    .Options;
+                await using var companyDb = new CompanyDbContext(options);
+                var seedDemoData = !string.Equals(
+                    Environment.GetEnvironmentVariable("SEED_DEMO_DATA"), "false",
+                    StringComparison.OrdinalIgnoreCase);
+                await DbInitializer.InitializeAsync(companyDb, seedDemoData);
+            }
+            else
+            {
+                await ApplyScriptsAsync(connection, context);
+            }
             await GrantPermissionsAsync(connection, context, roleName);
 
             Console.WriteLine($"Ready: {databaseName}");
