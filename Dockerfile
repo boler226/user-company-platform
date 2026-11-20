@@ -1,7 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY . .
-RUN dotnet restore UserCompanyPlatform.sln
+RUN dotnet restore UserService.API/UserService.API.csproj
+RUN dotnet restore CompanyService.API/CompanyService.API.csproj
+RUN dotnet restore NotificationService.Worker/NotificationService.Worker.csproj
+RUN dotnet restore DatabaseSetup/DatabaseSetup.csproj
 RUN dotnet publish UserService.API/UserService.API.csproj -c Release --no-restore -o /out/users
 RUN dotnet publish CompanyService.API/CompanyService.API.csproj -c Release --no-restore -o /out/companies
 RUN dotnet publish NotificationService.Worker/NotificationService.Worker.csproj -c Release --no-restore -o /out/notifications

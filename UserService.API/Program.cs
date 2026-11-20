@@ -3,18 +3,21 @@ using UsersService.Application.Validators;
 using FluentValidation;
 using UsersService.Application.Mappings;
 using UsersService.Infrastructure.Services;
-using Microsoft.EntityFrameworkCore;
-using UsersService.Infrastructure.DbContext;
+using UserService.Application.Memberships;
+using UsersService.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<DomainExceptionHandler>();
 
 builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("PostgreSQLConnection")!,
-    builder.Configuration["RabbitMq:Host"] ?? "rabbitmq");
+    builder.Configuration["RabbitMq:Host"] ?? "rabbitmq",
+    builder.Configuration.GetValue<ushort>("RabbitMq:Port", 5672));
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -37,7 +40,14 @@ builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(RegisterUserCommandHandler).Assembly));
 builder.Services.AddValidatorsFromAssembly(typeof(CreateUserValidator).Assembly);
 
-builder.Services.AddScoped<UserService.Infrastructure.Repositories.MembershipRepository>();
+builder.Services.AddMemberships(
+    builder.Configuration.GetConnectionString("PostgreSQLConnection")
+    ?? throw new InvalidOperationException("PostgreSQLConnection is missing."));
+builder.Services.AddHttpClient<ICompanySource, CompanySource>(client =>
+{
+    client.BaseAddress = new Uri(builder.Configuration["CompanyService:Url"] ?? "http://localhost:5001");
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddHttpClient<
     UserService.Domain.Interfaces.IEntityExistenceChecker,
     UserService.Infrastructure.Services.EntityExistenceChecker>(client =>
@@ -47,12 +57,18 @@ builder.Services.AddHttpClient<
     });
 builder.Services.AddHttpClient("companies", client => client.BaseAddress = new Uri(builder.Configuration["CompanyService:Url"] ?? "http://localhost:5001"));
 var app = builder.Build();
+app.UseExceptionHandler();
 
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "USER SERVICE V1");
     c.RoutePrefix = "";
+});
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "USER SERVICE V1");
+    c.RoutePrefix = "swagger";
 });
 
 //app.UseHttpsRedirection();

@@ -15,7 +15,8 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("PostgreSQLConnection")!,
-    builder.Configuration.GetConnectionString("Redis")!, builder.Configuration["RabbitMq:Host"] ?? "localhost");
+    builder.Configuration.GetConnectionString("Redis")!, builder.Configuration["RabbitMq:Host"] ?? "localhost",
+    builder.Configuration.GetValue<ushort>("RabbitMq:Port", 5672));
 
 builder.WebHost.ConfigureKestrel(options =>
 {
