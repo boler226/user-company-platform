@@ -1,11 +1,27 @@
 # User Company Platform
 
+## Лабораторна №2
+
+Заявки тепер проходять через BLL-сервіс, два Dapper-репозиторії та ADO.NET-репозиторій
+зі спільним Unit of Work. Контролер не містить SQL. Помилки повертаються як ProblemDetails;
+недопустимий перехід статусу тепер має код **409**, а не 400.
+
+Запуск усіх компонентів через Aspire:
+
+```powershell
+dotnet run --project UserCompanyPlatform.AppHost/UserCompanyPlatform.AppHost.csproj
+```
+
+[Структура ЛР №2, приклади запитів і перевірка rollback](database/lab02/README.md).
+Якщо вже запущений Compose, спочатку зупиніть його через `docker compose stop`.
+Нижче збережено інструкції базового Docker/локального запуску з ЛР №1.
+
 Лабораторна №1 інтегрована в наявний .NET solution. Python для запуску не потрібен.
 
 ## Як працює
 
 - **UserService.API**: реєстрація/вхід/користувачі через EF Core у `lab01_users`;
-  новий `api/memberships` викликає п'ять SQL-процедур через Npgsql (ADO.NET).
+  `api/memberships` використовує BLL, Dapper/ADO.NET та процедури через спільний Unit of Work.
   Роль JWT береться з `User.Role`, пароль перевіряється BCrypt, як і раніше.
 - **CompanyService.API**: компанії, реквізити 1:1, підрозділи 1:N та теги M:N
   відображені на `lab01_companies` через EF Core Fluent API.
@@ -86,7 +102,7 @@ dotnet run --project NotificationService.Worker
 3. `POST /api/memberships`: передайте userId, companyId та role (`Developer`).
 4. `GET /api/memberships/{id}`: скопіюйте поточне `version`.
 5. `POST /api/memberships/{id}/status`: передайте status=AwaitingValidation і version.
-   Потім Approved та Active, щоразу читаючи нову версію. Submitted → Active дає 400,
+   Потім Approved та Active, щоразу читаючи нову версію. Submitted → Active дає 409,
    застаріла версія — 409, невідомий ID — 404. Cancelled дозволений до Active;
    DELETE архівує лише Cancelled-заявку.
 6. У `api/company-structure` перегляньте теги, додайте компанії тег та підрозділ.

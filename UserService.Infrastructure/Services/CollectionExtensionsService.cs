@@ -14,7 +14,7 @@ namespace UsersService.Infrastructure.Services;
 
 public static class CollectionExtensionsService
 {
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string rabbitHost = "rabbitmq")
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, string connectionString, string rabbitHost = "rabbitmq", ushort rabbitPort = 5672)
     {
         services.AddDbContext<UserDbContext>(options =>
             options.UseNpgsql(connectionString));
@@ -24,7 +24,7 @@ public static class CollectionExtensionsService
         {
             x.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host(rabbitHost, "/", h =>
+                cfg.Host(rabbitHost, rabbitPort, "/", h =>
                 {
                     h.Username("guest");
                     h.Password("guest");

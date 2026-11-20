@@ -13,7 +13,7 @@ public static class CollectionExtensionsService
     public static IServiceCollection AddInfrastructure(
         this IServiceCollection services,
         string connectionString,
-        string redisConnectionString, string rabbitHost = "localhost")
+        string redisConnectionString, string rabbitHost = "localhost", ushort rabbitPort = 5672)
     {
 
         // (прибрано Console.WriteLine з рядком підключення: у ньому пароль)
@@ -38,7 +38,7 @@ public static class CollectionExtensionsService
         {
             x.UsingRabbitMq((context, cfg) =>
             {
-                cfg.Host(rabbitHost, "/", h =>
+                cfg.Host(rabbitHost, rabbitPort, "/", h =>
                 {
                     h.Username("guest");
                     h.Password("guest");
