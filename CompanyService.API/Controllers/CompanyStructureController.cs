@@ -1,49 +1,43 @@
+using CompanyService.Application.Catalog;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CompanyService.Domain.Entities;
-using CompanyService.Infrastructure.DbContext;
 
 namespace CompanyService.API.Controllers;
 
-[ApiController, Route("api/company-structure")]
-public class CompanyStructureController(CompanyDbContext db) : ControllerBase
+[ApiController]
+[Route("api/company-structure")]
+[ProducesResponseType<ValidationProblemDetails>(400)]
+[ProducesResponseType<ProblemDetails>(404)]
+[ProducesResponseType<ProblemDetails>(409)]
+public class CompanyStructureController(ICompanyService companies) : ControllerBase
 {
-
     [HttpGet("tags")]
-    public async Task<IActionResult> Tags(CancellationToken ct) => Ok(await db.Tags.ToListAsync(ct));
+    public async Task<ActionResult<List<TagDto>>> Tags(CancellationToken ct) => Ok(await companies.TagsAsync(ct));
 
     [HttpGet("{companyId:guid}/departments")]
-    public async Task<IActionResult> Departments(Guid companyId, CancellationToken ct) => Ok(await db.Departments.Where(x => x.CompanyId == companyId).ToListAsync(ct));
-    public record DepartmentInput(string Name, decimal Budget);
+    public async Task<ActionResult<List<DepartmentDto>>> Departments(Guid companyId, CancellationToken ct) =>
+        Ok(await companies.DepartmentsAsync(companyId, ct));
 
     [HttpPost("{companyId:guid}/departments")]
-    public async Task<IActionResult> AddDepartment(Guid companyId, DepartmentInput input, CancellationToken ct)
+    [ProducesResponseType<DepartmentDto>(201)]
+    public async Task<ActionResult<DepartmentDto>> AddDepartment(Guid companyId, DepartmentRequest input, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > 100 || input.Budget <= 0)
-            return BadRequest();
-        if (!await db.Companies.AnyAsync(x => x.Id == companyId, ct))
-            return NotFound();
-        if (await db.Departments.AnyAsync(x => x.CompanyId == companyId && x.Name == input.Name, ct))
-            return Conflict();
-        var item = new Department { Id = Guid.NewGuid(), CompanyId = companyId, Name = input.Name, Budget = input.Budget };
-        db.Departments.Add(item);
-        await db.SaveChangesAsync(ct);
-        return Ok(item);
+        var department = await companies.AddDepartmentAsync(companyId, input, ct);
+        return CreatedAtAction(nameof(Department), new { companyId, departmentId = department.Id }, department);
     }
 
+    [HttpGet("{companyId:guid}/departments/{departmentId:guid}")]
+    public async Task<ActionResult<DepartmentDto>> Department(Guid companyId, Guid departmentId, CancellationToken ct) =>
+        Ok(await companies.GetDepartmentAsync(companyId, departmentId, ct));
+
     [HttpGet("{companyId:guid}/tags")]
-    public async Task<IActionResult> CompanyTags(Guid companyId, CancellationToken ct) => Ok(await db.CompanyTags.Where(x => x.CompanyId == companyId).ToListAsync(ct));
+    public async Task<ActionResult<List<CompanyTagDto>>> CompanyTags(Guid companyId, CancellationToken ct) =>
+        Ok(await companies.CompanyTagsAsync(companyId, ct));
 
     [HttpPut("{companyId:guid}/tags/{tagId:guid}")]
+    [ProducesResponseType(204)]
     public async Task<IActionResult> AddTag(Guid companyId, Guid tagId, CancellationToken ct)
     {
-        if (!await db.Companies.AnyAsync(x => x.Id == companyId, ct) || !await db.Tags.AnyAsync(x => x.Id == tagId, ct))
-            return NotFound();
-        if (!await db.CompanyTags.AnyAsync(x => x.CompanyId == companyId && x.TagId == tagId, ct))
-        {
-            db.CompanyTags.Add(new CompanyTag { CompanyId = companyId, TagId = tagId });
-            await db.SaveChangesAsync(ct);
-        }
+        await companies.AddTagAsync(companyId, tagId, ct);
         return NoContent();
     }
 }

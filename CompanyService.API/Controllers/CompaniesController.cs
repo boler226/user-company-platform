@@ -1,50 +1,47 @@
-﻿using CompanyService.Application.Commands.CreateCompany;
-using CompanyService.Application.Commands.DeleteCompany;
-using CompanyService.Application.Commands.UpdateCompany;
-using CompanyService.Application.Queries.GetAllCompanies;
-using CompanyService.Application.Queries.GetCompanyByEmail;
-using CompanyService.Application.Queries.GetCompanyById;
-using MediatR;
+using CompanyService.Application.Catalog;
+using CompanyService.Application.DTOs;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CompanyService.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]/[action]")]
-public class CompaniesController(IMediator mediator) : ControllerBase {
+[Route("api/companies")]
+[ProducesResponseType<ValidationProblemDetails>(400)]
+[ProducesResponseType<ProblemDetails>(404)]
+[ProducesResponseType<ProblemDetails>(409)]
+public class CompaniesController(ICompanyService companies) : ControllerBase
+{
     [HttpGet]
-    public async Task<IActionResult> GetAll() {
-        var result = await mediator.Send(new GetAllCompaniesQuery());
-        return Ok(result);
-    }
+    [HttpGet("GetAll")]
+    public async Task<ActionResult<PagedResult<CompanyDto>>> Search([FromQuery] CompanyQuery query, CancellationToken ct) =>
+        Ok(await companies.SearchAsync(query, ct));
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(Guid id) {
-        var result = await mediator.Send(new GetCompanyByIdQuery(id));
-        return Ok(result);
-    }
-
-    [HttpGet("{email}")]
-    public async Task<IActionResult> GetByEmail(string email) {
-        var result = await mediator.Send(new GetCompanyByEmailQuery(email));
-        return Ok(result);
-    }
+    [HttpGet("{id:guid}")]
+    [HttpGet("GetById/{id:guid}")]
+    public async Task<ActionResult<CompanyView>> Get(Guid id, CancellationToken ct) => Ok(await companies.GetAsync(id, ct));
 
     [HttpPost]
-    public async Task<IActionResult> Create(CreateCompanyCommand command) {
-        var companyId = await mediator.Send(command);
-        return Ok(companyId);
+    [HttpPost("Create")]
+    [ProducesResponseType<CompanyView>(201)]
+    public async Task<ActionResult<CompanyView>> Create(CompanyWriteRequest input, CancellationToken ct)
+    {
+        var company = await companies.CreateAsync(input, ct);
+        return CreatedAtAction(nameof(Get), new { id = company.Id }, company);
     }
 
-    [HttpPut]
-    public async Task<IActionResult> Update(UpdateCompanyCommand command) {
-        await mediator.Send(command);
-        return Ok();
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType(204)]
+    public async Task<IActionResult> Update(Guid id, CompanyWriteRequest input, CancellationToken ct)
+    {
+        await companies.UpdateAsync(id, input, ct);
+        return NoContent();
     }
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> Delete(Guid id) {
-        await mediator.Send(new DeleteCompanyCommand(id));
-        return Ok(id);
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(204)]
+    public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
+    {
+        await companies.DeleteAsync(id, ct);
+        return NoContent();
     }
 }

@@ -1,4 +1,4 @@
-﻿using CompanyService.Domain.Interfaces;
+using CompanyService.Domain.Interfaces;
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using FluentValidation;
 using MediatR;
@@ -17,11 +17,8 @@ public class UpdateCompanyCommandHandler(
         if (company is null)
             throw new Exception("Company not found!");
 
-        company.Name = requst.Name;
-        company.Email = requst.Email;
-        company.Address = requst.Address;
-
-        await repository.UpdateAsync(company, cancellationToken);
+        company.Rename(requst.Name, requst.Email, requst.Address);
+        repository.Update(company);
         await unitOfWork.SaveChangesAsync();
     }
 }

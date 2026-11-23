@@ -44,6 +44,7 @@ services:
       LAB01_USERS_PASSWORD: ${LAB01_USERS_PASSWORD:-Lab01usersDemo2026}
       LAB01_COMPANIES_PASSWORD: ${LAB01_COMPANIES_PASSWORD:-Lab01companiesDemo2026}
       LAB01_NOTIFICATIONS_PASSWORD: ${LAB01_NOTIFICATIONS_PASSWORD:-Lab01notificationsDemo2026}
+      SEED_DEMO_DATA: ${SEED_DEMO_DATA:-true}
     depends_on:
       postgres: {condition: service_healthy}
       mongo: {condition: service_healthy}
@@ -60,7 +61,7 @@ services:
   companies-service:
     build: {context: ., target: companies-service}
     environment:
-      ConnectionStrings__PostgreSQLConnection: Host=postgres;Database=lab01_companies;Username=lab01_companies_app;Password=${LAB01_COMPANIES_PASSWORD:-Lab01companiesDemo2026}
+      ConnectionStrings__PostgreSQLConnection: Host=postgres;Database=lab03_companies;Username=lab01_companies_app;Password=${LAB01_COMPANIES_PASSWORD:-Lab01companiesDemo2026}
       ConnectionStrings__Redis: redis:6379
       RabbitMq__Host: rabbitmq
     ports: ["5001:5001"]

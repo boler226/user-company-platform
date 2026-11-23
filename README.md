@@ -1,5 +1,16 @@
 # User Company Platform
 
+## Лабораторна №3
+
+CompanyService використовує EF Core Code First, Generic Repository, Unit of Work,
+BLL, DTO, AutoMapper та специфікації. Додано пагінацію, валідацію, ProblemDetails
+і Serilog. [Усі 14 критеріїв та ручна перевірка](database/lab03/README.md).
+
+DatabaseSetup застосовує міграцію до **lab03_companies** і додає демодані.
+База **lab01_companies** залишається без змін; її власні записи автоматично не переносяться.
+Компанії Contoso/Fabrikam мають ті самі фіксовані ID, що й у попередніх лабораторних.
+Compose та Aspire вже налаштовані на нову базу. Команди запуску нижче залишаються актуальними.
+
 ## Лабораторна №2
 
 Заявки тепер проходять через BLL-сервіс, два Dapper-репозиторії та ADO.NET-репозиторій
@@ -24,15 +35,16 @@ dotnet run --project UserCompanyPlatform.AppHost/UserCompanyPlatform.AppHost.csp
   `api/memberships` використовує BLL, Dapper/ADO.NET та процедури через спільний Unit of Work.
   Роль JWT береться з `User.Role`, пароль перевіряється BCrypt, як і раніше.
 - **CompanyService.API**: компанії, реквізити 1:1, підрозділи 1:N та теги M:N
-  відображені на `lab01_companies` через EF Core Fluent API.
+  відображені на `lab03_companies` через EF Core Fluent API.
 - **NotificationService.Worker**: події реєстрації надходять через RabbitMQ;
   документи й історія доставлення зберігаються у MongoDB `lab01_notifications`.
 - **DatabaseSetup**: C#-консольний проєкт створює бази, логіни, таблиці,
   процедури, колекції, індекси та seed-дані. Повторний запуск передбачено.
 
 Нові бази не переносять автоматично дані зі старої `UserService`. Старі EF-міграції
-залишені як історія попередньої схеми та більше не запускаються при старті API.
-Для нової схеми використовуйте DatabaseSetup, не `dotnet ef database update` зі старими міграціями.
+залишені як історія попередньої схеми. Для CompanyService активна нова міграція
+`Migrations/Lab03/InitialCreate`; старі файли в корені `Migrations` виключені з компіляції.
+DatabaseSetup застосовує нові міграції та видає ролям права; API працює з обмеженими правами.
 
 ## Найпростіший запуск: Docker
 

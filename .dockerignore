@@ -8,4 +8,5 @@
 **/.local-mongo/
 **/__pycache__/
 .git/
+.tools/
 *.log

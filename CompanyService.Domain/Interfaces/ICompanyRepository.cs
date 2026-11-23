@@ -1,12 +1,11 @@
-﻿using CompanyService.Domain.Entities;
+using CompanyService.Domain.Entities;
+using CompanyService.Domain.Specifications;
 
 namespace CompanyService.Domain.Interfaces;
 
-public interface ICompanyRepository {
-    Task<List<Company>> GetAllAsync(CancellationToken cancellationToken);
-    Task<Company?> GetByIdAsync(Guid id, CancellationToken cancellationToken);
-    Task<Company?> GetByEmailAsync(string email, CancellationToken cancellationToken);
-    Task AddAsync(Company user, CancellationToken cancellationToken);
-    Task UpdateAsync(Company user, CancellationToken cancellationToken);
-    Task DeleteAsync(Company user, CancellationToken cancellationToken);
+public interface ICompanyRepository : IGenericRepository<Company>
+{
+    Task<Company?> GetByEmailAsync(string email, CancellationToken ct);
+    Task<Company?> GetDetailsAsync(Guid id, CancellationToken ct);
+    Task<(List<Company> Items, int TotalCount)> SearchAsync(Specification<Company> specification, CancellationToken ct);
 }

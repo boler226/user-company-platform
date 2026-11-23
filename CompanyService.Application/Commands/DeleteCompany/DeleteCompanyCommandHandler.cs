@@ -1,4 +1,4 @@
-﻿using CompanyService.Domain.Interfaces;
+using CompanyService.Domain.Interfaces;
 using CompanyService.Infrastructure.UnitOfWork.Interfaces;
 using MediatR;
 
@@ -14,7 +14,8 @@ public class DeleteCompanyCommandHandler(
         if (company is null)
             throw new Exception("Company not found!");
 
-        await repository.DeleteAsync(company, cancellationToken);
+        company.Archive();
+        repository.Update(company);
         await unitOfWork.SaveChangesAsync();
     }
 }
