@@ -112,7 +112,12 @@ internal sealed class MongoDatabaseSetup(string connectionString, string passwor
         var command = new BsonDocument(operation, username)
         {
             { "pwd", password },
-            { "roles", new BsonArray { role } }
+            { "roles", new BsonArray
+                {
+                    role,
+                    new BsonDocument { { "role", "readWrite" }, { "db", "lab04_notifications" } }
+                }
+            }
         };
 
         await database.RunCommandAsync<BsonDocument>(command);

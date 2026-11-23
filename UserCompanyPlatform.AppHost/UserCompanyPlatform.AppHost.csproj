@@ -20,5 +20,6 @@
     <ProjectReference Include="../UserService.API/UserService.API.csproj" />
     <ProjectReference Include="../CompanyService.API/CompanyService.API.csproj" />
     <ProjectReference Include="../NotificationService.Worker/NotificationService.Worker.csproj" />
+    <ProjectReference Include="../NotificationService.API/NotificationService.API.csproj" />
   </ItemGroup>
 </Project>
