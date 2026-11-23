@@ -1,5 +1,167 @@
 # User Company Platform
 
+
+## Лабораторна №5: мікросервісна платформа
+
+Основне рішення — **Platform.slnx**. Запуск — **Platform.AppHost**, вхідний HTTP-порт Gateway — **8080**.
+Збережено погоджену PostgreSQL замість SQL Server. Npgsql трасує запити Dapper, ADO.NET та EF Core;
+SqlClient не підключається, оскільки ці сервіси його не використовують.
+
+```text
+Gateway :8080 → Aggregator → Users / Companies / Notifications
+            ↘ Users / Companies / Notifications
+Users → PostgreSQL lab01_users
+Companies → PostgreSQL lab03_companies
+Notifications → MongoDB lab04_notifications
+```
+
+### Структура та залежності
+
+| Компонент | Призначення |
+|---|---|
+| Platform.AppHost/AppHost.cs | PostgreSQL, MongoDB, RabbitMQ, Redis, DatabaseSetup, три API, worker, Aggregator і Gateway |
+| Platform.ServiceDefaults/Extensions.cs | Serilog, OTLP, HTTP service discovery, resilience, health checks |
+| Platform.ServiceDefaults/CorrelationIdMiddleware.cs | Перевірка/створення X-Correlation-Id, LogContext, відповідь клієнту |
+| Platform.ServiceDefaults/CorrelationIdHandler.cs | Передавання CorrelationId у вихідні HTTP-запити |
+| Platform.ApiGateway/ | YARP, JWT, логування маршруту й кластера; Dockerfile |
+| Platform.Aggregator/ | Typed HttpClients, DTO, паралельні запити, часткові відповіді; Dockerfile |
+
+AppHost посилається на виконувані проєкти; API, Aggregator і Gateway підключають ServiceDefaults.
+Gateway та Aggregator не посилаються на DLL мікросервісів. Жоден сервіс не посилається на AppHost.
+Власні шари Domain/Application/Infrastructure та їхні залежності попередніх лабораторних збережено.
+Старий UserCompanyPlatform.AppHost і .sln залишені для попередніх робіт; для №5 використовується Platform.slnx.
+Код попередніх лаб не переміщено й не продубльовано: [відповідність папок](Services/README.md),
+[джерела схем БД](db/README.md), [контексти й модель агрегування](docs/platform-contexts.md).
+
+### Перший запуск
+
+Потрібні Docker Desktop із Linux containers, .NET 8 Runtime і SDK **9.0.200 або новіший** для Platform.slnx.
+Проєкти сервісів залишаються net8.0. Відкрийте корінь репозиторію в терміналі.
+Якщо запущено старий Compose чи старий AppHost, зупиніть їх перед запуском цієї платформи.
+
+Один раз задайте секрети AppHost. Значення нижче — приклади для локальної лабораторної:
+
+```powershell
+dotnet user-secrets set "Parameters:postgres-password" "Lab05PostgresLocal2026" --project Platform.AppHost
+dotnet user-secrets set "Parameters:jwt-key" "Lab05-Local-Jwt-Key-Change-This-32-Bytes-Minimum" --project Platform.AppHost
+dotnet dev-certs https --trust
+dotnet run --project Platform.AppHost/Platform.AppHost.csproj
+```
+
+Адреса Dashboard та посилання з токеном доступу з'являться в консолі AppHost.
+Gateway: **http://localhost:8080**. Прямі адреси трьох API та Aggregator дивіться у Dashboard:
+Aspire призначає їм порти автоматично. `/alive` перевіряє процес, `/health` — готовність;
+SQL API перевіряють PostgreSQL, Notification API — MongoDB.
+
+PostgreSQL і MongoDB мають постійні volumes `platform-lab05-postgres` та `platform-lab05-mongo`.
+Вони окремі від старого Compose: дані звідти автоматично не переносяться.
+DatabaseSetup створює бази, ролі, SQL-процедури, міграції EF Core та демодані;
+Notification API створює свої MongoDB-колекції, індекси та seed.
+Порядок задають WaitFor/WaitForCompletion: БД → DatabaseSetup → API → Aggregator → Gateway.
+DatabaseSetup завершується з кодом 0 — це очікувано, він не повинен постійно залишатись Running.
+
+WithReference передає service discovery і рядки підключення.
+SQL-ресурси users-db/companies-db передаються відповідному сервісу з alias `PostgreSQLConnection`;
+MongoDB-ресурс — `NotificationsDb`. Для застосунків передаються рядки з обмеженими сервісними логінами;
+адміністратор PostgreSQL використовується DatabaseSetup. Демопаролі сервісних ролей залишено з №1.
+JWT-секрет однаковий для UserService і Gateway та передається з параметра AppHost.
+
+### Запити через Gateway
+
+Проксі-маршрути: `/api/users/**`, `/api/memberships/**`, `/api/companies/**`,
+`/api/company-structure/**`, `/api/notifications/**`, `/api/templates/**`, `/api/aggregator/**`.
+Маршрут Aggregator має Order=-10, звичайні — 10, вхід/реєстрація — -100.
+YARP використовує адреси `http://users-api` тощо та resolver service discovery.
+
+Усі проксі-маршрути, крім реєстрації та входу, вимагають JWT. Це перевірка підпису й строку дії
+наявного токена UserService; токени цього сервісу поки не містять issuer/audience.
+Прямі внутрішні API залишаються навчальними endpoint-ами попередніх лабораторних;
+перевірка JWT реалізована на Gateway, а не як повна система прав доступу до ресурсів.
+
+Приклад для PowerShell: спочатку зареєструйте окремого користувача для демонстрації.
+Якщо він уже існує, пропустіть реєстрацію й виконайте вхід.
+
+```powershell
+$base = "http://localhost:8080"
+$registration = @{
+    firstName = "Demo"
+    lastName = "User"
+    email = "lab05@example.test"
+    password = "Lab05Demo2026!"
+} | ConvertTo-Json
+Invoke-RestMethod "$base/api/users/Register/register" -Method Post -ContentType "application/json" -Body $registration
+$login = @{ email = "lab05@example.test"; password = "Lab05Demo2026!" } | ConvertTo-Json
+$session = Invoke-RestMethod "$base/api/users/Login/login" -Method Post -ContentType "application/json" -Body $login
+$headers = @{ Authorization = "Bearer $($session.token)"; "X-Correlation-Id" = [guid]::NewGuid().ToString() }
+Invoke-RestMethod "$base/api/companies?page=1&pageSize=10" -Headers $headers
+Invoke-RestMethod "$base/api/notifications?page=1&pageSize=10" -Headers $headers
+Invoke-RestMethod "$base/api/aggregator/users/10000000-0000-0000-0000-000000000001/overview" -Headers $headers
+```
+
+Огляд користувача повертає `userId`, `memberships`, `companies`, `notifications`, `warnings`, `membershipPage`.
+Заявки та сповіщення читаються через Task.WhenAll; компанії зі сторінки заявок також читаються паралельно.
+Параметр `page` за замовчуванням 1; сповіщення містять власні totalCount/page/pageSize.
+API не вдає, що одна сторінка є повною історією користувача.
+JSON має camelCase; null-поля не серіалізуються.
+
+Для прямого виклику Aggregator скопіюйте його URL із Dashboard:
+
+```powershell
+$aggregatorUrl = "http://localhost:ПОРТ_ІЗ_DASHBOARD"
+Invoke-RestMethod "$aggregatorUrl/api/aggregator/users/10000000-0000-0000-0000-000000000001/overview" -Headers $headers
+```
+
+### Часткові відмови та телеметрія
+
+1. Виконайте огляд seed-користувача з прикладу: є заявка Contoso та сповіщення.
+2. Зупиніть notifications-api у Dashboard, не зупиняючи Gateway і Aggregator.
+3. Повторіть запит: HTTP 200, заявки та компанії доступні, у warnings — notifications-api.
+4. Запустіть сервіс знову. Після відновлення discovery/circuit breaker повна відповідь повертається.
+5. Повторіть сценарій із companies-api: заявки й повідомлення залишаються у відповіді.
+6. За зупиненого users-api сповіщення залишаються; компанії не запитуються, бо ID беруться із заявок.
+
+Клієнти мають timeout, retry та circuit breaker. Повтори вимкнено для POST/PUT/PATCH/DELETE/CONNECT.
+Resilience обмежує HTTP-спроби, окремий 15-секундний deadline обмежує також читання JSON.
+Кожен виклик логує назву сервісу, тривалість і тип збою; тіло відповіді й Authorization не логуються.
+Скасування клієнтом передається downstream та не перетворюється на успішну часткову відповідь.
+
+X-Correlation-Id нормалізується як GUID; відсутній або невалідний замінюється новим.
+Він є в заголовку відповіді, LogContext і вихідних HTTP-запитах. YARP передає той самий заголовок.
+TraceId/SpanId створюються OpenTelemetry, а CorrelationId використовується для пошуку бізнес-звернення.
+Serilog додає ServiceName, Environment, MachineName, ThreadId і пише Compact JSON у консоль;
+`writeToProviders: true` передає події також в OpenTelemetry й Structured logs Dashboard.
+
+У Traces знайдіть запит `/overview`: Gateway → Aggregator → Users/Notifications → PostgreSQL/MongoDB,
+а після отримання ID компаній — Companies → PostgreSQL.
+Власні spans: `users.overview`, `memberships.list`, `companies.get` та MediatR-операції Notifications.
+У Structured logs відфільтруйте CorrelationId з `$headers`.
+SQL-текст і текст команд MongoDB не експортуються; повні запити, email і повідомлення не логуються новим кодом.
+У Development sampling 100%; в інших середовищах `Telemetry__SamplingRatio` за замовчуванням 0.1.
+
+### Таблиця дублювання
+
+| Дані | Власник | Копія / політика |
+|---|---|---|
+| Назва компанії | Companies | Users.company_directory — локальна проєкція з source_version |
+| Назва в заявці | Companies на момент події | companyNameSnapshot — історичний знімок, не переписується |
+| Отримувач і company у сповіщенні | Users / Companies на момент створення | Незмінні вкладені знімки MongoDB |
+| Останні спроби доставки | Notifications.deliveryAttempts | recentAttempts — останні три спроби |
+| DTO Aggregator | Відповідні сервіси | Тимчасова композиція на один HTTP-запит, не окрема БД і не кеш |
+
+### Перевірка та здача
+
+Збірка, запуск контейнерів і інтеграційні тести під час внесення змін не виконувалися.
+Для власної перевірки: `dotnet build Platform.slnx`, потім запуск AppHost командою вище.
+Скриншоти: ресурси Dashboard, trace агрегування, логи з одним CorrelationId, відповідь із warnings при відмові.
+Dockerfile Gateway/Aggregator збираються з кореня репозиторію; оркестрація №5 виконується AppHost.
+Старий docker-compose.yml запускає попередній набір сервісів без нового Gateway/Aggregator.
+
+Документація: [service discovery YARP](https://www.nuget.org/packages/Microsoft.Extensions.ServiceDiscovery.Yarp/9.3.0),
+[MongoDB DiagnosticSources](https://github.com/jbogard/MongoDB.Driver.Core.Extensions.DiagnosticSources),
+[Npgsql tracing](https://www.npgsql.org/doc/diagnostics/tracing.html),
+[підтримка SLNX](https://devblogs.microsoft.com/dotnet/introducing-slnx-support-dotnet-cli/).
+
+
 ## Лабораторна №4
 
 NotificationService доповнено Application та API для Clean Architecture, CQRS/MediatR,

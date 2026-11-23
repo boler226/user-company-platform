@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using MediatR;
 using Microsoft.Extensions.Logging;
 
@@ -6,21 +7,25 @@ namespace NotificationService.Application.Behaviors;
 public sealed class LoggingBehavior<TRequest, TResponse>(ILogger<LoggingBehavior<TRequest, TResponse>> logger)
     : IPipelineBehavior<TRequest, TResponse> where TRequest : notnull
 {
+    private static readonly ActivitySource Activities = new("NotificationService.Business");
+
     public async Task<TResponse> Handle(TRequest request, RequestHandlerDelegate<TResponse> next,
         CancellationToken cancellationToken)
     {
         var requestName = typeof(TRequest).Name;
-        logger.LogInformation("Handling {RequestName}: {@Request}", requestName, request);
-
+        using var activity = Activities.StartActivity(requestName);
+        activity?.SetTag("business.operation", requestName);
+        logger.LogInformation("Handling {RequestName}", requestName);
         try
         {
             var response = await next();
-            logger.LogInformation("Handled {RequestName}: {@Response}", requestName, response);
+            logger.LogInformation("Completed {RequestName}", requestName);
             return response;
         }
         catch (Exception exception)
         {
-            logger.LogError(exception, "Failed {RequestName}", requestName);
+            activity?.SetStatus(ActivityStatusCode.Error, exception.GetType().Name);
+            logger.LogWarning("Failed {RequestName} with {ErrorType}", requestName, exception.GetType().Name);
             throw;
         }
     }

@@ -1,0 +1,21 @@
+<Solution>
+  <Project Path="CompanyService.API/CompanyService.API.csproj" />
+  <Project Path="CompanyService.Application/CompanyService.Application.csproj" />
+  <Project Path="CompanyService.Domain/CompanyService.Domain.csproj" />
+  <Project Path="CompanyService.Infrastructure/CompanyService.Infrastructure.csproj" />
+  <Project Path="NotificationService.Domain/NotificationService.Domain.csproj" />
+  <Project Path="NotificationService.Infrastructure/NotificationService.Infrastructure.csproj" />
+  <Project Path="UserService.API/UserService.API.csproj" />
+  <Project Path="UserService.Application/UserService.Application.csproj" />
+  <Project Path="UserService.Domain/UserService.Domain.csproj" />
+  <Project Path="UserService.Infrastructure/UserService.Infrastructure.csproj" />
+  <Project Path="NotificationService.Worker/NotificationService.Worker.csproj" />
+  <Project Path="Contracts/Contracts.csproj" />
+  <Project Path="DatabaseSetup/DatabaseSetup.csproj" />
+  <Project Path="NotificationService.Application/NotificationService.Application.csproj" />
+  <Project Path="NotificationService.API/NotificationService.API.csproj" />
+  <Project Path="Platform.AppHost/Platform.AppHost.csproj" />
+  <Project Path="Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
+  <Project Path="Platform.ApiGateway/Platform.ApiGateway.csproj" />
+  <Project Path="Platform.Aggregator/Platform.Aggregator.csproj" />
+</Solution>

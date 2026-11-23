@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using System.Data;
 using AutoMapper;
 using UserService.Domain.Memberships;
@@ -8,10 +10,15 @@ namespace UserService.Application.Memberships;
 public sealed class MembershipService(
     IMembershipUnitOfWork unitOfWork,
     ICompanySource companies,
-    IMapper mapper) : IMembershipService
+    IMapper mapper,
+    ILogger<MembershipService> logger) : IMembershipService
 {
+    private static readonly ActivitySource Activities = new("UserService.Business");
+
     public async Task<MembershipDto> GetAsync(Guid id, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("memberships.get");
+        activity?.SetTag("membership.id", id);
         var membership = await unitOfWork.Memberships.GetWithHistoryAsync(id, ct)
             ?? throw new ResourceNotFoundException("Membership not found.");
         return mapper.Map<MembershipDto>(membership);
@@ -19,16 +26,21 @@ public sealed class MembershipService(
 
     public async Task<IReadOnlyList<MembershipDto>> ListAsync(Guid userId, int page, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("memberships.list");
+        activity?.SetTag("user.id", userId);
         if (userId == Guid.Empty || page is < 1 or > 100000)
         {
             throw new InputValidationException("Supply a user ID and a page between 1 and 100000.");
         }
         var memberships = await unitOfWork.Memberships.FindByUserAsync(userId, page, ct);
+        logger.LogInformation("Loaded membership page {Page} for {UserId}", page, userId);
         return mapper.Map<List<MembershipDto>>(memberships);
     }
 
     public async Task<MembershipDto> CreateAsync(CreateMembershipRequest input, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("memberships.create");
+        activity?.SetTag("company.id", input.CompanyId);
         ValidateRole(input.Role);
         if (input.UserId == Guid.Empty || input.CompanyId == Guid.Empty)
         {
@@ -55,11 +67,14 @@ public sealed class MembershipService(
             await unitOfWork.Memberships.AddAsync(membership, ct);
         }, ct);
 
+        logger.LogInformation("Created membership {MembershipId} for company {CompanyId}", membership.Id, input.CompanyId);
         return await GetAsync(membership.Id, ct);
     }
 
     public async Task UpdateAsync(Guid id, EditMembershipRequest input, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("memberships.update");
+        activity?.SetTag("membership.id", id);
         ValidateRole(input.Role);
         ValidateVersion(input.Version);
         var membership = await FindAsync(id, ct);
@@ -74,6 +89,8 @@ public sealed class MembershipService(
 
     public async Task ChangeStatusAsync(Guid id, ChangeMembershipStatusRequest input, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("memberships.change_status");
+        activity?.SetTag("membership.id", id);
         ValidateVersion(input.Version);
         if (input.Status is not ("AwaitingValidation" or "Approved" or "Active" or "Cancelled"))
         {
@@ -105,6 +122,8 @@ public sealed class MembershipService(
                 await unitOfWork.Users.AssignCompanyAsync(membership.UserId, membership.CompanyId, ct);
             }
         }, ct);
+        activity?.SetTag("membership.status", input.Status);
+        logger.LogInformation("Changed membership {MembershipId} to {Status}", id, input.Status);
     }
 
     public async Task DeleteAsync(Guid id, long version, CancellationToken ct)

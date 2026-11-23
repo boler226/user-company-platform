@@ -1,3 +1,4 @@
+using MongoDB.Driver.Core.Extensions.DiagnosticSources;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 using NotificationService.Domain.Entities;
@@ -19,7 +20,10 @@ public sealed class MongoDbContext
 
     public MongoDbContext(IOptions<MongoDbOptions> options)
     {
-        var client = new MongoClient(options.Value.ConnectionString);
+        var settings = MongoClientSettings.FromConnectionString(options.Value.ConnectionString);
+        settings.ClusterConfigurator = cluster => cluster.Subscribe(
+            new DiagnosticsActivityEventSubscriber(new InstrumentationOptions { CaptureCommandText = false }));
+        var client = new MongoClient(settings);
         Database = client.GetDatabase(options.Value.DatabaseName);
     }
 }

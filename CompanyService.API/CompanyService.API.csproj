@@ -24,4 +24,7 @@
     <ProjectReference Include="..\CompanyService.Application\CompanyService.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="../Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
+  </ItemGroup>
 </Project>
