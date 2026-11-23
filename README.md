@@ -1,5 +1,17 @@
 # User Company Platform
 
+## Лабораторна №4
+
+NotificationService доповнено Application та API для Clean Architecture, CQRS/MediatR,
+FluentValidation, MongoDB-проєкцій, Value Objects, контролю версій та ProblemDetails.
+Swagger сповіщень: http://localhost:5002/swagger.
+[Архітектура, запуск і ручна перевірка](database/lab04/README.md).
+
+API використовує нову **lab04_notifications** з ObjectId та структурою колекцій із ЛР №1.
+Попередня **lab01_notifications** і worker продовжують працювати окремо;
+старі записи не переносяться автоматично. Для наявного Compose повторно запустіть
+DatabaseSetup, щоб видати сервісному логіну права на нову базу.
+
 ## Лабораторна №3
 
 CompanyService використовує EF Core Code First, Generic Repository, Unit of Work,

@@ -57,4 +57,11 @@ builder.AddProject<Projects.NotificationService_Worker>("notifications-worker", 
     .WaitForCompletion(setup)
     .WaitFor(rabbit);
 
+builder.AddProject<Projects.NotificationService_API>("notifications-api", launchProfileName: null)
+    .WithHttpEndpoint(port: 5002, targetPort: 5002, name: "http", isProxied: false)
+    .WithEnvironment("MongoDb__ConnectionString", ReferenceExpression.Create(
+        $"mongodb://lab01_notifications_app:Lab01notificationsDemo2026@{mongoHost}:{mongoPort}/?authSource=lab01_notifications&maxPoolSize=50&serverSelectionTimeoutMS=5000"))
+    .WithEnvironment("MongoDb__DatabaseName", "lab04_notifications")
+    .WaitForCompletion(setup);
+
 builder.Build().Run();

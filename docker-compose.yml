@@ -78,6 +78,16 @@ services:
     depends_on:
       database-setup: {condition: service_completed_successfully}
       rabbitmq: {condition: service_healthy}
+  notifications-api:
+    build: {context: ., target: notifications-api}
+    environment:
+      Urls: http://+:5002
+      MongoDb__ConnectionString: mongodb://lab01_notifications_app:${LAB01_NOTIFICATIONS_PASSWORD:-Lab01notificationsDemo2026}@mongo:27017/?authSource=lab01_notifications&maxPoolSize=50&serverSelectionTimeoutMS=5000
+      MongoDb__DatabaseName: lab04_notifications
+      MongoDb__SeedDemoData: "true"
+    ports: ["5002:5002"]
+    depends_on:
+      database-setup: {condition: service_completed_successfully}
 volumes:
   lab-sql:
   lab-mongo:
