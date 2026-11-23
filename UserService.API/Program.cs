@@ -1,3 +1,4 @@
+using Platform.ServiceDefaults;
 using UsersService.Application.Commands.CreateUser;
 using UsersService.Application.Validators;
 using FluentValidation;
@@ -7,6 +8,8 @@ using UserService.Application.Memberships;
 using UsersService.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.AddServiceDefaults();
+builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgresql");
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
@@ -19,11 +22,7 @@ builder.Services.AddInfrastructure(
     builder.Configuration["RabbitMq:Host"] ?? "rabbitmq",
     builder.Configuration.GetValue<ushort>("RabbitMq:Port", 5672));
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5000); // HTTP 
-    //options.ListenAnyIP(5000, listenOptions => listenOptions.UseHttps()); // HTTPS
-});
+builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://0.0.0.0:5000");
 
 builder.Services.AddCors(options =>
 {
@@ -57,6 +56,8 @@ builder.Services.AddHttpClient<
     });
 builder.Services.AddHttpClient("companies", client => client.BaseAddress = new Uri(builder.Configuration["CompanyService:Url"] ?? "http://localhost:5001"));
 var app = builder.Build();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.MapDefaultEndpoints();
 app.UseExceptionHandler();
 
 app.UseSwagger();

@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using Microsoft.Extensions.Logging;
 using AutoMapper;
 using CompanyService.Application.DTOs;
 using CompanyService.Domain.Entities;
@@ -13,10 +15,14 @@ public sealed class CompanyCatalogService(
     IMapper mapper,
     IValidator<CompanyWriteRequest> companyValidator,
     IValidator<CompanyQuery> queryValidator,
-    IValidator<DepartmentRequest> departmentValidator) : ICompanyService
+    IValidator<DepartmentRequest> departmentValidator,
+    ILogger<CompanyCatalogService> logger) : ICompanyService
 {
+    private static readonly ActivitySource Activities = new("CompanyService.Business");
+
     public async Task<PagedResult<CompanyDto>> SearchAsync(CompanyQuery query, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("companies.search");
         await queryValidator.ValidateAndThrowAsync(query, ct);
         var specification = new CompanySearchSpecification(
             query.Search, query.TagId, query.SortBy, query.SortDir == "desc", query.Page, query.PageSize);
@@ -24,22 +30,31 @@ public sealed class CompanyCatalogService(
         return new PagedResult<CompanyDto>(mapper.Map<List<CompanyDto>>(items), total, query.Page, query.PageSize);
     }
 
-    public async Task<CompanyView> GetAsync(Guid id, CancellationToken ct) =>
-        mapper.Map<CompanyView>(await unitOfWork.Companies.GetDetailsAsync(id, ct)
-            ?? throw new NotFoundException("Company not found."));
+    public async Task<CompanyView> GetAsync(Guid id, CancellationToken ct)
+    {
+        using var activity = Activities.StartActivity("companies.get");
+        activity?.SetTag("company.id", id);
+        var company = await unitOfWork.Companies.GetDetailsAsync(id, ct)
+            ?? throw new NotFoundException("Company not found.");
+        logger.LogInformation("Loaded company {CompanyId} at version {Version}", id, company.Version);
+        return mapper.Map<CompanyView>(company);
+    }
 
     public async Task<CompanyView> CreateAsync(CompanyWriteRequest input, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("companies.create");
         await companyValidator.ValidateAndThrowAsync(input, ct);
         await EnsureEmailAvailableAsync(input.Email, null, ct);
         var company = new Company(input.Name, input.Email, input.Address);
         await unitOfWork.Companies.AddAsync(company, ct);
         await unitOfWork.SaveChangesAsync(ct);
+        logger.LogInformation("Created company {CompanyId}", company.Id);
         return mapper.Map<CompanyView>(company);
     }
 
     public async Task UpdateAsync(Guid id, CompanyWriteRequest input, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("companies.update");
         await companyValidator.ValidateAndThrowAsync(input, ct);
         var company = await FindAsync(id, ct);
         if (company.Version != input.Version)
@@ -54,6 +69,7 @@ public sealed class CompanyCatalogService(
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
     {
+        using var activity = Activities.StartActivity("companies.archive");
         var company = await FindAsync(id, ct);
         company.Archive();
         unitOfWork.Companies.Update(company);

@@ -9,4 +9,7 @@
     <ProjectReference Include="../NotificationService.Infrastructure/NotificationService.Infrastructure.csproj" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
   </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
+  </ItemGroup>
 </Project>

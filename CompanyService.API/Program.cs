@@ -1,3 +1,4 @@
+using Platform.ServiceDefaults;
 using CompanyService.Application.Behaviors;
 using CompanyService.Application.Commands.CreateCompany;
 using CompanyService.Application.Catalog;
@@ -6,15 +7,10 @@ using CompanyService.Application.Mappings;
 using CompanyService.Application.Validators;
 using CompanyService.Infrastructure.Services;
 using FluentValidation;
-using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
-
-builder.Host.UseSerilog((context, logger) => logger
-    .ReadFrom.Configuration(context.Configuration)
-    .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3}] {SourceContext} {Message:lj} {Properties:j}{NewLine}{Exception}"));
+builder.AddServiceDefaults();
+builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgresql");
 
 builder.Services.AddControllers();
 builder.Services.AddProblemDetails();
@@ -28,10 +24,7 @@ builder.Services.AddInfrastructure(
     builder.Configuration.GetConnectionString("Redis")!, builder.Configuration["RabbitMq:Host"] ?? "localhost",
     builder.Configuration.GetValue<ushort>("RabbitMq:Port", 5672));
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.ListenAnyIP(5001); // HTTP
-});
+builder.WebHost.UseUrls(builder.Configuration["urls"] ?? "http://0.0.0.0:5001");
 
 builder.Services.AddCors(options =>
 {
@@ -54,12 +47,9 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(CreateCompanyValidator).Assembly);
 
 var app = builder.Build();
+app.UseMiddleware<CorrelationIdMiddleware>();
+app.MapDefaultEndpoints();
 
-app.UseSerilogRequestLogging(options =>
-{
-    options.EnrichDiagnosticContext = (context, http) =>
-        context.Set("TraceId", http.TraceIdentifier);
-});
 app.UseExceptionHandler();
 
 var instanceId = Environment.MachineName;
