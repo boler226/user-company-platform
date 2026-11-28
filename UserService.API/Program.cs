@@ -1,3 +1,5 @@
+using UserService.API.Grpc;
+using Platform.ServiceDefaults.Grpc;
 using Platform.ServiceDefaults;
 using UsersService.Application.Commands.CreateUser;
 using UsersService.Application.Validators;
@@ -9,6 +11,10 @@ using UsersService.API.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
+builder.ConfigureInternalGrpc();
+builder.Services.AddGrpc(options => options.Interceptors.Add<GrpcLoggingInterceptor>());
+if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("redis")))
+    builder.AddRedisDistributedCache("redis", settings => settings.DisableHealthChecks = true);
 builder.Services.AddHealthChecks().AddCheck<PostgresHealthCheck>("postgresql");
 
 builder.Services.AddControllers();
@@ -76,4 +82,5 @@ app.UseSwaggerUI(c =>
 app.UseCors();
 app.UseAuthorization();
 app.MapControllers();
+app.MapGrpcService<MembershipGrpcService>();
 app.Run();

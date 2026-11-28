@@ -1,0 +1,26 @@
+syntax = "proto3";
+package platform.memberships.v1;
+option csharp_namespace = "Platform.Grpc.Memberships.V1";
+
+service MembershipReader {
+  rpc ListMemberships (ListMembershipsRequest) returns (ListMembershipsReply);
+}
+
+message ListMembershipsRequest {
+  string user_id = 1;
+  int32 page = 2;
+}
+
+message Membership {
+  string id = 1;
+  string user_id = 2;
+  string company_id = 3;
+  string company_name_snapshot = 4;
+  string requested_role = 5;
+  string status = 6;
+  int64 version = 7;
+}
+
+message ListMembershipsReply {
+  repeated Membership items = 1;
+}

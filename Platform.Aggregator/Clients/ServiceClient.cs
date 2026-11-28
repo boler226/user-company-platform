@@ -1,48 +1,36 @@
 using System.Diagnostics;
-using System.Net.Http.Json;
-using System.Text.Json;
+using Grpc.Core;
 using Platform.Aggregator.Models;
-using Polly.CircuitBreaker;
-using Polly.Timeout;
 
 namespace Platform.Aggregator.Clients;
 
-public abstract class ServiceClient(HttpClient http, ILogger logger, string service)
+public abstract class ServiceClient(ILogger logger, string service)
 {
-    protected async Task<ServiceResult<T>> GetAsync<T>(string path, CancellationToken ct) where T : class
+    protected async Task<ServiceResult<T>> CallAsync<T>(Func<DateTime, CancellationToken, Task<T>> call,
+        CancellationToken ct) where T : class
     {
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(TimeSpan.FromSeconds(15));
         var timer = Stopwatch.StartNew();
-        logger.LogInformation("Calling {Service}", service);
+        var status = StatusCode.OK;
         try
         {
-            using var response = await http.GetAsync(path, HttpCompletionOption.ResponseHeadersRead, deadline.Token);
-            if (!response.IsSuccessStatusCode)
+            return new(await call(DateTime.UtcNow.AddSeconds(4), ct), null);
+        }
+        catch (RpcException error)
+        {
+            ct.ThrowIfCancellationRequested();
+            status = error.StatusCode;
+            var message = status switch
             {
-                logger.LogWarning("{Service} returned {StatusCode}", service, (int)response.StatusCode);
-                return new(null, new(service, $"http_{(int)response.StatusCode}",
-                    $"{service} did not return the requested data."));
-            }
-
-            var data = await response.Content.ReadFromJsonAsync<T>(cancellationToken: deadline.Token);
-            return data is null
-                ? new(null, new(service, "empty_response", $"{service} returned an empty response."))
-                : new(data, null);
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (Exception exception) when (exception is HttpRequestException or OperationCanceledException
-            or TimeoutRejectedException or BrokenCircuitException or JsonException or IOException)
-        {
-            logger.LogWarning("Call to {Service} failed with {ErrorType}", service, exception.GetType().Name);
-            return new(null, new(service, "unavailable", $"{service} is temporarily unavailable or returned invalid data."));
+                StatusCode.Unavailable or StatusCode.DeadlineExceeded => $"{service} is temporarily unavailable.",
+                StatusCode.NotFound => $"{service} did not find the requested data.",
+                _ => $"{service} could not complete the request."
+            };
+            return new(null, new(service, status.ToString(), message));
         }
         finally
         {
-            logger.LogInformation("Call to {Service} finished in {ElapsedMs} ms", service, timer.ElapsedMilliseconds);
+            logger.Log(status == StatusCode.OK ? LogLevel.Information : LogLevel.Warning,
+                "gRPC to {Service} returned {GrpcStatus} in {ElapsedMs} ms", service, status, timer.ElapsedMilliseconds);
         }
     }
 }

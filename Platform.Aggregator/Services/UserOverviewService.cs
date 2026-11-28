@@ -1,3 +1,4 @@
+using Platform.Aggregator.Caching;
 using System.Diagnostics;
 using Platform.Aggregator.Clients;
 using Platform.Aggregator.Models;
@@ -5,7 +6,7 @@ using Platform.Aggregator.Models;
 namespace Platform.Aggregator.Services;
 
 public sealed class UserOverviewService(UsersClient users, CompaniesClient companies,
-    NotificationsClient notifications, ILogger<UserOverviewService> logger)
+    NotificationsClient notifications, OverviewCache cache, ILogger<UserOverviewService> logger)
 {
     private static readonly ActivitySource Activities = new("Platform.Aggregator");
 
@@ -13,6 +14,13 @@ public sealed class UserOverviewService(UsersClient users, CompaniesClient compa
     {
         using var activity = Activities.StartActivity("users.overview");
         activity?.SetTag("user.id", userId);
+        var key = await cache.GetKeyAsync(userId, page, ct);
+        if (key is not null && await cache.GetAsync(key, ct) is { } cached)
+        {
+            activity?.SetTag("overview.cached", true);
+            return cached;
+        }
+
         var membershipsTask = users.GetMembershipsAsync(userId, page, ct);
         var notificationsTask = notifications.GetAsync(userId, page, ct);
         await Task.WhenAll(membershipsTask, notificationsTask);
@@ -34,7 +42,11 @@ public sealed class UserOverviewService(UsersClient users, CompaniesClient compa
         activity?.SetTag("overview.warning_count", warnings.Count);
         logger.LogInformation("Built overview for {UserId} with {MembershipCount} memberships and {WarningCount} warnings",
             userId, memberships.Data?.Count, warnings.Count);
-        return new UserOverviewDto(userId, memberships.Data, companyData, messages.Data,
+        var overview = new UserOverviewDto(userId, memberships.Data, companyData, messages.Data,
             warnings.Distinct().ToArray(), page);
+        if (key is not null && warnings.Count == 0)
+            await cache.SetAsync(key, overview, ct);
+
+        return overview;
     }
 }

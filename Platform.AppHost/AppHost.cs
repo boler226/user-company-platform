@@ -12,7 +12,7 @@ var notificationsDb = mongo.AddDatabase("NotificationsDb", "lab04_notifications"
 var rabbitUser = builder.AddParameter("rabbit-user", "guest");
 var rabbitPassword = builder.AddParameter("rabbit-password", "guest", secret: true);
 var rabbit = builder.AddRabbitMQ("rabbitmq", rabbitUser, rabbitPassword);
-var redis = builder.AddRedis("redis");
+var redis = builder.AddRedis("redis").WithDataVolume("platform-lab06-redis");
 var postgresHost = postgres.GetEndpoint("tcp").Property(EndpointProperty.Host);
 var postgresPort = postgres.GetEndpoint("tcp").Property(EndpointProperty.Port);
 var mongoHost = mongo.GetEndpoint("tcp").Property(EndpointProperty.Host);
@@ -33,17 +33,20 @@ var setup = builder.AddProject<Projects.DatabaseSetup>("database-setup")
     .WaitFor(postgres).WaitFor(mongo);
 
 var companies = builder.AddProject<Projects.CompanyService_API>("companies-api", launchProfileName: null)
-    .WithHttpEndpoint(name: "http")
+    .WithHttpEndpoint(name: "http", env: "Rest__Port")
+    .WithHttpEndpoint(name: "grpc", env: "Grpc__Port", isProxied: false)
     .WithReference(companiesDb, "PostgreSQLConnection")
     .WithEnvironment("ConnectionStrings__PostgreSQLConnection", ServiceDatabase("companies"))
-    .WithReference(redis, "Redis")
+    .WithReference(redis)
     .WithEnvironment("RabbitMq__Host", rabbitHost)
     .WithEnvironment("RabbitMq__Port", rabbitPort)
     .WaitFor(companiesDb).WaitForCompletion(setup).WaitFor(rabbit).WaitFor(redis)
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health", endpointName: "http");
 
 var users = builder.AddProject<Projects.UserService_API>("users-api", launchProfileName: null)
-    .WithHttpEndpoint(name: "http")
+    .WithHttpEndpoint(name: "http", env: "Rest__Port")
+    .WithHttpEndpoint(name: "grpc", env: "Grpc__Port", isProxied: false)
+    .WithReference(redis).WaitFor(redis)
     .WithReference(usersDb, "PostgreSQLConnection")
     .WithEnvironment("ConnectionStrings__PostgreSQLConnection", ServiceDatabase("users"))
     .WithReference(companies)
@@ -52,17 +55,19 @@ var users = builder.AddProject<Projects.UserService_API>("users-api", launchProf
     .WithEnvironment("RabbitMq__Host", rabbitHost)
     .WithEnvironment("RabbitMq__Port", rabbitPort)
     .WaitFor(usersDb).WaitForCompletion(setup).WaitFor(rabbit).WaitFor(companies)
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health", endpointName: "http");
 
 var notifications = builder.AddProject<Projects.NotificationService_API>("notifications-api", launchProfileName: null)
-    .WithHttpEndpoint(name: "http")
+    .WithHttpEndpoint(name: "http", env: "Rest__Port")
+    .WithHttpEndpoint(name: "grpc", env: "Grpc__Port", isProxied: false)
+    .WithReference(redis).WaitFor(redis)
     .WithReference(notificationsDb)
     .WithEnvironment("ConnectionStrings__NotificationsDb", ReferenceExpression.Create(
         $"mongodb://lab01_notifications_app:Lab01notificationsDemo2026@{mongoHost}:{mongoPort}/?authSource=lab01_notifications&maxPoolSize=50&serverSelectionTimeoutMS=5000"))
     .WithEnvironment("MongoDb__DatabaseName", "lab04_notifications")
     .WithEnvironment("MongoDb__SeedDemoData", "true")
     .WaitFor(notificationsDb).WaitForCompletion(setup)
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health", endpointName: "http");
 
 builder.AddProject<Projects.NotificationService_Worker>("notifications-worker", launchProfileName: null)
     .WithReference(mongo)
@@ -76,13 +81,14 @@ var aggregator = builder.AddProject<Projects.Platform_Aggregator>("aggregator", 
     .WithHttpEndpoint(name: "http")
     .WithReference(users).WithReference(companies).WithReference(notifications)
     .WaitFor(users).WaitFor(companies).WaitFor(notifications)
-    .WithHttpHealthCheck("/health");
+    .WithReference(redis).WaitFor(redis)
+    .WithHttpHealthCheck("/health", endpointName: "http");
 
 builder.AddProject<Projects.Platform_ApiGateway>("gateway", launchProfileName: null)
     .WithHttpEndpoint(port: 8080, name: "http")
     .WithEnvironment("Authentication__Jwt__SecretKey", jwtKey)
     .WithReference(users).WithReference(companies).WithReference(notifications).WithReference(aggregator)
     .WaitFor(users).WaitFor(companies).WaitFor(notifications).WaitFor(aggregator)
-    .WithHttpHealthCheck("/health");
+    .WithHttpHealthCheck("/health", endpointName: "http");
 
 builder.Build().Run();

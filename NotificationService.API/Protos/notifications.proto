@@ -1,0 +1,31 @@
+syntax = "proto3";
+package platform.notifications.v1;
+option csharp_namespace = "Platform.Grpc.Notifications.V1";
+
+import "google/protobuf/timestamp.proto";
+
+service NotificationReader {
+  rpc ListNotifications (ListNotificationsRequest) returns (ListNotificationsReply);
+}
+
+message ListNotificationsRequest {
+  string user_id = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+}
+
+message Notification {
+  string id = 1;
+  string status = 2;
+  int32 priority = 3;
+  map<string, string> payload = 4;
+  google.protobuf.Timestamp created_at = 5;
+  int64 version = 6;
+}
+
+message ListNotificationsReply {
+  repeated Notification items = 1;
+  int64 total_count = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}

@@ -1,3 +1,4 @@
+using Platform.ServiceDefaults.Caching;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Configuration;
@@ -19,7 +20,7 @@ namespace Platform.ServiceDefaults;
 
 public static class Extensions
 {
-    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder)
+    public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder, bool useHttpResilience = true)
         where TBuilder : IHostApplicationBuilder
     {
         builder.Logging.ClearProviders();
@@ -49,10 +50,10 @@ public static class Extensions
                     ["deployment.environment.name"] = builder.Environment.EnvironmentName
                 }))
             .WithMetrics(metrics => metrics.AddAspNetCoreInstrumentation()
-                .AddHttpClientInstrumentation().AddRuntimeInstrumentation())
+                .AddHttpClientInstrumentation().AddRuntimeInstrumentation().AddMeter(CacheTelemetry.MeterName))
             .WithTracing(tracing => tracing
                 .SetSampler(new ParentBasedSampler(new TraceIdRatioBasedSampler(ratio)))
-                .AddSource("Platform.Business", "Platform.Aggregator", "UserService.Business",
+                .AddSource("Grpc.Net.Client", "Platform.Business", "Platform.Aggregator", "UserService.Business",
                     "CompanyService.Business", "NotificationService.Business", "Npgsql",
                     "MongoDB.Driver.Core.Extensions.DiagnosticSources")
                 .AddAspNetCoreInstrumentation(options =>
@@ -65,21 +66,27 @@ public static class Extensions
             builder.Services.AddOpenTelemetry().UseOtlpExporter();
 
         builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"]);
+        builder.Services.AddMetrics();
+        builder.Services.AddSingleton<CacheTelemetry>();
+        builder.Services.AddSingleton<RedisReadCache>();
         builder.Services.AddServiceDiscovery();
         builder.Services.AddHttpContextAccessor();
         builder.Services.AddTransient<CorrelationIdHandler>();
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
             http.AddHttpMessageHandler<CorrelationIdHandler>();
-            http.AddStandardResilienceHandler(options =>
+            if (useHttpResilience)
             {
-                options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(12);
-                options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(3);
-                options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
-                options.Retry.MaxRetryAttempts = 2;
-                options.Retry.Delay = TimeSpan.FromMilliseconds(200);
-                options.Retry.DisableForUnsafeHttpMethods();
-            });
+                http.AddStandardResilienceHandler(options =>
+                {
+                    options.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(12);
+                    options.AttemptTimeout.Timeout = TimeSpan.FromSeconds(3);
+                    options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+                    options.Retry.MaxRetryAttempts = 2;
+                    options.Retry.Delay = TimeSpan.FromMilliseconds(200);
+                    options.Retry.DisableForUnsafeHttpMethods();
+                });
+            }
             http.AddServiceDiscovery();
         });
         return builder;

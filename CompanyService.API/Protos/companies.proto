@@ -1,0 +1,17 @@
+syntax = "proto3";
+package platform.companies.v1;
+option csharp_namespace = "Platform.Grpc.Companies.V1";
+
+service CompanyReader {
+  rpc GetCompany (GetCompanyRequest) returns (Company);
+}
+
+message GetCompanyRequest {
+  string id = 1;
+}
+
+message Company {
+  string id = 1;
+  string name = 2;
+  int64 version = 3;
+}

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -17,5 +17,8 @@
   <ItemGroup>
     <ProjectReference Include="..\UserService.Domain\UserService.Domain.csproj" />
     <ProjectReference Include="..\UserService.Infrastructure\UserService.Infrastructure.csproj" /> 
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

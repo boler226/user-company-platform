@@ -1,3 +1,4 @@
+using Platform.ServiceDefaults.Caching;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using System.Data;
@@ -11,7 +12,8 @@ public sealed class MembershipService(
     IMembershipUnitOfWork unitOfWork,
     ICompanySource companies,
     IMapper mapper,
-    ILogger<MembershipService> logger) : IMembershipService
+    ILogger<MembershipService> logger,
+    RedisReadCache cache) : IMembershipService
 {
     private static readonly ActivitySource Activities = new("UserService.Business");
 
@@ -67,6 +69,7 @@ public sealed class MembershipService(
             await unitOfWork.Memberships.AddAsync(membership, ct);
         }, ct);
 
+        await cache.InvalidateAsync(RedisReadCache.Memberships, "MembershipCreated");
         logger.LogInformation("Created membership {MembershipId} for company {CompanyId}", membership.Id, input.CompanyId);
         return await GetAsync(membership.Id, ct);
     }
@@ -85,6 +88,7 @@ public sealed class MembershipService(
         membership.RequestedRole = input.Role;
         membership.Version = input.Version;
         await unitOfWork.Memberships.UpdateAsync(membership, ct);
+        await cache.InvalidateAsync(RedisReadCache.Memberships, "MembershipUpdated");
     }
 
     public async Task ChangeStatusAsync(Guid id, ChangeMembershipStatusRequest input, CancellationToken ct)
@@ -122,6 +126,7 @@ public sealed class MembershipService(
                 await unitOfWork.Users.AssignCompanyAsync(membership.UserId, membership.CompanyId, ct);
             }
         }, ct);
+        await cache.InvalidateAsync(RedisReadCache.Memberships, "MembershipStatusChanged");
         activity?.SetTag("membership.status", input.Status);
         logger.LogInformation("Changed membership {MembershipId} to {Status}", id, input.Status);
     }
@@ -135,6 +140,7 @@ public sealed class MembershipService(
             throw new BusinessConflictException("Cancel the membership before deleting it.");
         }
         await unitOfWork.Memberships.DeleteAsync(id, version, ct);
+        await cache.InvalidateAsync(RedisReadCache.Memberships, "MembershipDeleted");
     }
 
     private async Task<Membership> FindAsync(Guid id, CancellationToken ct) =>

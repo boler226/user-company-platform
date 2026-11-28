@@ -12,4 +12,8 @@
   <ItemGroup>
     <ProjectReference Include="../Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.AspNetCore" Version="2.66.0" />
+    <Protobuf Include="Protos/notifications.proto" GrpcServices="Server" />
+  </ItemGroup>
 </Project>

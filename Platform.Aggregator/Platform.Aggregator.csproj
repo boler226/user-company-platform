@@ -8,4 +8,12 @@
 
     <ProjectReference Include="../Platform.ServiceDefaults/Platform.ServiceDefaults.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Grpc.Net.ClientFactory" Version="2.66.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.66.0" PrivateAssets="all" />
+    <PackageReference Include="Google.Protobuf" Version="3.28.2" />
+    <Protobuf Include="../UserService.API/Protos/memberships.proto" GrpcServices="Client" Link="Protos/memberships.proto" />
+    <Protobuf Include="../CompanyService.API/Protos/companies.proto" GrpcServices="Client" Link="Protos/companies.proto" />
+    <Protobuf Include="../NotificationService.API/Protos/notifications.proto" GrpcServices="Client" Link="Protos/notifications.proto" />
+  </ItemGroup>
 </Project>

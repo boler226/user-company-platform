@@ -1,3 +1,6 @@
+using System.Security.Cryptography;
+using System.Text.Json;
+using CompanyService.Application.Caching;
 using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using AutoMapper;
@@ -16,7 +19,8 @@ public sealed class CompanyCatalogService(
     IValidator<CompanyWriteRequest> companyValidator,
     IValidator<CompanyQuery> queryValidator,
     IValidator<DepartmentRequest> departmentValidator,
-    ILogger<CompanyCatalogService> logger) : ICompanyService
+    ILogger<CompanyCatalogService> logger,
+    CompanyReadCache cache) : ICompanyService
 {
     private static readonly ActivitySource Activities = new("CompanyService.Business");
 
@@ -24,20 +28,27 @@ public sealed class CompanyCatalogService(
     {
         using var activity = Activities.StartActivity("companies.search");
         await queryValidator.ValidateAndThrowAsync(query, ct);
-        var specification = new CompanySearchSpecification(
-            query.Search, query.TagId, query.SortBy, query.SortDir == "desc", query.Page, query.PageSize);
-        var (items, total) = await unitOfWork.Companies.SearchAsync(specification, ct);
-        return new PagedResult<CompanyDto>(mapper.Map<List<CompanyDto>>(items), total, query.Page, query.PageSize);
+        var filter = Convert.ToHexString(SHA256.HashData(JsonSerializer.SerializeToUtf8Bytes(query)));
+        return await cache.GetAsync($"list:{filter}", TimeSpan.FromSeconds(45), async () =>
+        {
+            var specification = new CompanySearchSpecification(
+                query.Search, query.TagId, query.SortBy, query.SortDir == "desc", query.Page, query.PageSize);
+            var (items, total) = await unitOfWork.Companies.SearchAsync(specification, ct);
+            return new PagedResult<CompanyDto>(mapper.Map<List<CompanyDto>>(items), total, query.Page, query.PageSize);
+        }, ct);
     }
 
     public async Task<CompanyView> GetAsync(Guid id, CancellationToken ct)
     {
         using var activity = Activities.StartActivity("companies.get");
         activity?.SetTag("company.id", id);
-        var company = await unitOfWork.Companies.GetDetailsAsync(id, ct)
-            ?? throw new NotFoundException("Company not found.");
-        logger.LogInformation("Loaded company {CompanyId} at version {Version}", id, company.Version);
-        return mapper.Map<CompanyView>(company);
+        return await cache.GetAsync($"company:{id:D}", TimeSpan.FromSeconds(60), async () =>
+        {
+            var company = await unitOfWork.Companies.GetDetailsAsync(id, ct)
+                ?? throw new NotFoundException("Company not found.");
+            logger.LogInformation("Loaded company {CompanyId} at version {Version}", id, company.Version);
+            return mapper.Map<CompanyView>(company);
+        }, ct);
     }
 
     public async Task<CompanyView> CreateAsync(CompanyWriteRequest input, CancellationToken ct)
@@ -48,6 +59,7 @@ public sealed class CompanyCatalogService(
         var company = new Company(input.Name, input.Email, input.Address);
         await unitOfWork.Companies.AddAsync(company, ct);
         await unitOfWork.SaveChangesAsync(ct);
+        await cache.InvalidateAsync("CompanyCreated");
         logger.LogInformation("Created company {CompanyId}", company.Id);
         return mapper.Map<CompanyView>(company);
     }
@@ -65,6 +77,7 @@ public sealed class CompanyCatalogService(
         company.Rename(input.Name, input.Email, input.Address);
         unitOfWork.Companies.Update(company);
         await unitOfWork.SaveChangesAsync(ct);
+        await cache.InvalidateAsync("CompanyUpdated");
     }
 
     public async Task DeleteAsync(Guid id, CancellationToken ct)
@@ -74,6 +87,7 @@ public sealed class CompanyCatalogService(
         company.Archive();
         unitOfWork.Companies.Update(company);
         await unitOfWork.SaveChangesAsync(ct);
+        await cache.InvalidateAsync("CompanyArchived");
     }
 
     public async Task<List<DepartmentDto>> DepartmentsAsync(Guid id, CancellationToken ct)
@@ -106,6 +120,7 @@ public sealed class CompanyCatalogService(
         var department = new Department(id, input.Name, input.Budget);
         await unitOfWork.Departments.AddAsync(department, ct);
         await unitOfWork.SaveChangesAsync(ct);
+        await cache.InvalidateAsync("DepartmentAdded");
         return mapper.Map<DepartmentDto>(department);
     }
 
@@ -131,6 +146,7 @@ public sealed class CompanyCatalogService(
         }
         await unitOfWork.Tags.AddLinkAsync(new CompanyTag(companyId, tagId), ct);
         await unitOfWork.SaveChangesAsync(ct);
+        await cache.InvalidateAsync("TagAssigned");
     }
 
     private async Task<Company> FindAsync(Guid id, CancellationToken ct) =>

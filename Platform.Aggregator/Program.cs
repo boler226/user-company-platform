@@ -1,3 +1,7 @@
+using Platform.Aggregator.Caching;
+using Platform.Grpc.Companies.V1;
+using Platform.Grpc.Memberships.V1;
+using Platform.Grpc.Notifications.V1;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Platform.Aggregator.Clients;
@@ -5,7 +9,9 @@ using Platform.Aggregator.Services;
 using Platform.ServiceDefaults;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.AddServiceDefaults();
+builder.AddServiceDefaults(useHttpResilience: false);
+if (!string.IsNullOrWhiteSpace(builder.Configuration.GetConnectionString("redis")))
+    builder.AddRedisDistributedCache("redis", settings => settings.DisableHealthChecks = true);
 builder.Services.AddProblemDetails();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
@@ -13,9 +19,16 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 builder.Services.AddScoped<UserOverviewService>();
-builder.Services.AddHttpClient<UsersClient>(client => client.BaseAddress = new Uri("https+http://users-api"));
-builder.Services.AddHttpClient<CompaniesClient>(client => client.BaseAddress = new Uri("https+http://companies-api"));
-builder.Services.AddHttpClient<NotificationsClient>(client => client.BaseAddress = new Uri("https+http://notifications-api"));
+builder.Services.AddSingleton<OverviewCache>();
+builder.Services.AddTransient<UsersClient>();
+builder.Services.AddTransient<CompaniesClient>();
+builder.Services.AddTransient<NotificationsClient>();
+builder.Services.AddGrpcClient<MembershipReader.MembershipReaderClient>(options =>
+    options.Address = new Uri("http://_grpc.users-api"));
+builder.Services.AddGrpcClient<CompanyReader.CompanyReaderClient>(options =>
+    options.Address = new Uri("http://_grpc.companies-api"));
+builder.Services.AddGrpcClient<NotificationReader.NotificationReaderClient>(options =>
+    options.Address = new Uri("http://_grpc.notifications-api"));
 
 var app = builder.Build();
 app.UseMiddleware<CorrelationIdMiddleware>();
